@@ -1,0 +1,21 @@
+﻿<Window x:Class="BPCoordinator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BPCoordinator"
+        mc:Ignorable="d"
+        Title="BP Coordinator" Height="489.216" Width="895.588" Loaded="Window_Loaded">
+    <Grid>
+        <Button x:Name="btnSend" Content="Send" HorizontalAlignment="Left" Margin="330,428,0,0" VerticalAlignment="Top" Width="75" Click="btnSend_Click" RenderTransformOrigin="0.611,1.611"/>
+        <TextBox x:Name="txtSend" HorizontalAlignment="Left" Height="20" Margin="10,403,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="395" KeyDown="txtSend_KeyDown"/>
+        <ListBox x:Name="lstLog" HorizontalAlignment="Left" Height="413" Margin="410,35,0,0" VerticalAlignment="Top" Width="468"/>
+        <Label Content="Log" HorizontalAlignment="Left" Margin="410,4,0,0" VerticalAlignment="Top" Width="143"/>
+        <ComboBox x:Name="cmbIp" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top" Width="165"/>
+        <Button x:Name="btnListen" Content="Listen" HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top" Width="75" Click="btnListen_Click"/>
+        <Label Content="IP" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+        <Label Content="Port" HorizontalAlignment="Left" Margin="180,10,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.072,-0.318"/>
+        <TextBox x:Name="txtPort" HorizontalAlignment="Left" Height="23" Margin="180,34,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="70" Text="11002"/>
+
+    </Grid>
+</Window>

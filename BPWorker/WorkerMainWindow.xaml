@@ -1,0 +1,21 @@
+﻿<Window x:Class="BPWorker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:BPWorker"
+        mc:Ignorable="d"
+        Title="BP Worker" Height="568.627" Width="896.569" Loaded="Window_Loaded">
+    <Grid>
+        <Button x:Name="btnSend" Content="Send" HorizontalAlignment="Left" Margin="347,508,0,0" VerticalAlignment="Top" Width="75" Click="btnSend_Click"/>
+        <TextBox x:Name="txtSend" HorizontalAlignment="Left" Height="23" Margin="10,480,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="412" KeyDown="txtSend_KeyDown"/>
+        <Label Content="Log" HorizontalAlignment="Left" Margin="427,10,0,0" VerticalAlignment="Top"/>
+        <ListBox x:Name="lstLog" HorizontalAlignment="Left" Height="492" Margin="427,36,0,0" VerticalAlignment="Top" Width="452"/>
+        <TextBox x:Name="txtIp" HorizontalAlignment="Left" Height="23" Margin="10,36,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="144" KeyDown="txtIp_KeyDown"/>
+        <TextBox x:Name="txtPort" HorizontalAlignment="Left" Height="23" Margin="159,36,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="69" KeyDown="txtPort_KeyDown"/>
+        <Label Content="IP" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
+        <Label Content="Port" HorizontalAlignment="Left" Margin="159,10,0,0" VerticalAlignment="Top"/>
+        <Button x:Name="btnConnect" Content="Connect" HorizontalAlignment="Left" Margin="10,64,0,0" VerticalAlignment="Top" Width="75" Click="btnConnect_Click"/>
+
+    </Grid>
+</Window>
