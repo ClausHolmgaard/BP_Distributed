@@ -29,7 +29,6 @@ namespace BPCoordinator
             InitializeComponent();
 
             hlp = new Helpers();
-            listener = new Listener(AddLogEntry);
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -65,7 +64,7 @@ namespace BPCoordinator
 
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
-            AddLogEntry(txtSend.Text);
+            listener.Send(txtSend.Text);
             txtSend.Text = "";
         }
 
@@ -80,11 +79,12 @@ namespace BPCoordinator
         private void btnListen_Click(object sender, RoutedEventArgs e)
         {
             bool portSuccess = Int32.TryParse(txtPort.Text, out int port);
-            if(!portSuccess)
+            if (!portSuccess)
             {
                 AddLogEntry("Error parsing port: " + txtPort.Text);
             }
-            listener.StartListening(cmbIp.Text, port);
+            listener = new Listener(cmbIp.Text, port, AddLogEntry);
+            listener.Run();
         }
     }
 }

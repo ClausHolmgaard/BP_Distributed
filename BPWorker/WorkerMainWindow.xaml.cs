@@ -14,6 +14,8 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 
 using BPShared;
+using System.Xml.Serialization;
+using System.IO;
 
 namespace BPWorker
 {
@@ -23,13 +25,15 @@ namespace BPWorker
     public partial class MainWindow : Window
     {
         Helpers hlp;
-        Comm comm;
+        Client comm;
+        ComData comData;
 
         public MainWindow()
         {
             InitializeComponent();
 
             hlp = new Helpers();
+            comm = new Client(AddLogEntry);
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -50,8 +54,12 @@ namespace BPWorker
 
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
-            AddLogEntry(txtSend.Text);
-            txtSend.Text = "";
+            Console.WriteLine("Connected: " + comm.getConnected());
+            if (txtSend.Text != "")
+            {
+                comm.send(txtSend.Text);
+                txtSend.Text = "";
+            }
         }
 
         private void txtSend_KeyDown(object sender, KeyEventArgs e)
@@ -71,7 +79,7 @@ namespace BPWorker
                 return;
             }
 
-            comm = new Comm(txtIp.Text, port, AddLogEntry);
+            comm.connect(txtIp.Text, port);
 
         }
 
@@ -89,6 +97,24 @@ namespace BPWorker
             {
                 btnConnect_Click(this, new RoutedEventArgs());
             }
+        }
+
+        private void btnSendXML_Click(object sender, RoutedEventArgs e)
+        {
+            comData = new ComData();
+            comData.error = ErrorCode.messageOK;
+            comData.status = StatusCode.idle;
+            comData.name = "Test";
+            comData.id = 1;
+
+            XmlSerializer serializer = new XmlSerializer(typeof(ComData));
+            StringWriter sWriter = new StringWriter();
+            serializer.Serialize(sWriter, comData);
+
+            string myXML = sWriter.ToString();
+            Console.WriteLine("Sending XML:\n" + myXML);
+            comm.send(myXML.Replace(Environment.NewLine, ""));
+
         }
     }
 }
