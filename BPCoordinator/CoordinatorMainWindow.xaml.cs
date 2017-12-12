@@ -38,6 +38,30 @@ namespace BPCoordinator
             btnListen.Focus();
         }
 
+        private void UpdateClients()
+        {
+            List<NetworkClient> networkClients = listener.GetClients();
+            lstClients.Items.Clear();
+
+            foreach (NetworkClient client in networkClients)
+            {
+                string clientInfo = "";
+                if (client.name == "")
+                {
+                    clientInfo += "NoName";
+                }
+                else
+                {
+                    clientInfo += client.name;
+                }
+                clientInfo += " - ID: " + client.Id;
+                ListBoxItem itm = new ListBoxItem();
+                itm.Content = clientInfo;
+                lstClients.Items.Add(itm);
+            }
+
+        }
+
         private void AddIps()
         {
             ComboBoxItem cmbAll = new ComboBoxItem();
@@ -64,8 +88,10 @@ namespace BPCoordinator
 
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
-            listener.Send(txtSend.Text);
+            listener.SendAll(txtSend.Text);
             txtSend.Text = "";
+
+            UpdateClients();
         }
 
         private void txtSend_KeyDown(object sender, KeyEventArgs e)
@@ -84,7 +110,23 @@ namespace BPCoordinator
                 AddLogEntry("Error parsing port: " + txtPort.Text);
             }
             listener = new Listener(cmbIp.Text, port, AddLogEntry);
+            listener.NewClientEvent += UpdateClients;
             listener.Run();
+        }
+
+        private void btnSendToSelected_Click(object sender, RoutedEventArgs e)
+        {
+            foreach(ListBoxItem item in lstClients.SelectedItems)
+            {
+                string selectedItem = item.Content.ToString();
+                Int32.TryParse(selectedItem.Substring(selectedItem.LastIndexOf("ID: ")).Replace("ID: ", ""), out int clientID);
+                Console.WriteLine("Sending message to client " + clientID);
+
+                listener.SendToClient(txtSend.Text, clientID);
+            }
+
+            string selected = lstClients.SelectedItems.ToString();
+            
         }
     }
 }

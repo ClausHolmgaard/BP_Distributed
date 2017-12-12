@@ -26,4 +26,12 @@ namespace BPShared
 
 
     }
+
+    public class ComHandling
+    {
+        public void SendMessage(string msg)
+        {
+
+        }
+    }
 }

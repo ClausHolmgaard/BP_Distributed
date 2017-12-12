@@ -21,6 +21,7 @@ namespace BPCoordinator
     
     public delegate void MessageReceivedDelegate(NetworkClient client, string message);
     public delegate void ClientDisconnectedDelegate(NetworkClient client);
+    public delegate void NewClientDelegate();
 
     public class NetworkClient
     {
@@ -30,6 +31,7 @@ namespace BPCoordinator
 
         public bool IsActive;
         public int Id;
+        public string name;
         public TcpClient Socket;
 
         public event MessageReceivedDelegate MessageReceived;
@@ -39,6 +41,7 @@ namespace BPCoordinator
         {
             socket = clientSocket;
             id = clientId;
+            name = "";
         }
 
         private void MarkAsDisconnected()
@@ -110,6 +113,8 @@ namespace BPCoordinator
 
     class Listener
     {
+        public event NewClientDelegate NewClientEvent;
+
         private TcpListener listener;
         private List<NetworkClient> networkClients;
         private List<KeyValuePair<Task, NetworkClient>> networkClientReceiveInputTasks; 
@@ -149,6 +154,11 @@ namespace BPCoordinator
                 new Action(() => {
                     AddLog(msg);
                 }));
+        }
+
+        public List<NetworkClient> GetClients()
+        {
+            return networkClients;
         }
 
         private async void ProcessClientCommand(NetworkClient client, string command)
@@ -205,6 +215,7 @@ namespace BPCoordinator
             networkClients.Add(netClient);
             AddLogEntry("Client " + clientNumber + " Connected");
             Console.WriteLine("Server: Client connected.");
+            NewClientEvent();
         }
 
         private async Task ListenForClients()
@@ -243,7 +254,7 @@ namespace BPCoordinator
             clientListenTask = ListenForClients();
         }
 
-        public async void Send(string message)
+        public async void SendAll(string message)
         {
             string serverMessage = "Server says: " + message;
             AddLogEntry(serverMessage);
@@ -254,6 +265,20 @@ namespace BPCoordinator
                 Console.WriteLine("Sending message to client " + netClient.Id);
                 if (netClient.IsActive)
                 {
+                    await netClient.SendLine(serverMessage + '\n');
+                }
+            }
+        }
+
+        public async void SendToClient(string message, int id)
+        {
+            string serverMessage = "Server says: " + message;
+
+            foreach (NetworkClient netClient in networkClients)
+            {
+                if(netClient.Id == id && netClient.IsActive)
+                {
+                    Console.WriteLine("Sending message to client " + netClient.Id + "(" + message + ")");
                     await netClient.SendLine(serverMessage + '\n');
                 }
             }
