@@ -34,6 +34,8 @@ namespace BPWorker
 
             hlp = new Helpers();
             comm = new Client(AddLogEntry);
+            comm.ComDataReceivedEvent += DataReceived;
+            comm.ConnectionChangedEvent += UpdateUI;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -42,22 +44,64 @@ namespace BPWorker
             txtIp.Text = ips[0];
             txtPort.Text = "11002";
 
+            txtName.Text = Environment.MachineName;
+
+            UpdateUI();
             txtIp.Focus();
         }
 
-        private void AddLogEntry(string msg)
+        private void AddLog(string msg)
         {
             ListBoxItem itm = new ListBoxItem();
             itm.Content = msg;
             lstLog.Items.Add(itm);
         }
 
+        private void AddLogEntry(string msg)
+        {
+            // Much pretty, very work...
+            Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
+                new Action(() => {
+                    AddLog(msg);
+                }));
+        }
+
+        private void UpdateUI()
+        { 
+            if(comm.isConnected)
+            {
+                btnConnect.IsEnabled = false;
+                txtIp.IsEnabled = false;
+                txtPort.IsEnabled = false;
+
+                btnDisconnect.IsEnabled = true;
+                txtSend.IsEnabled = true;
+                btnSend.IsEnabled = true;
+            }
+            else
+            {
+                btnConnect.IsEnabled = true;
+                txtIp.IsEnabled = true;
+                txtPort.IsEnabled = true;
+
+                btnDisconnect.IsEnabled = false;
+                txtSend.IsEnabled = false;
+                btnSend.IsEnabled = false;
+            }
+        }
+
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
-            Console.WriteLine("Connected: " + comm.getConnected());
             if (txtSend.Text != "")
             {
-                comm.send(txtSend.Text);
+                //comm.send(txtSend.Text);
+                comData = new ComData();
+                comData.status = StatusCode.idle;
+                comData.name = txtName.Text;
+                comData.message = txtSend.Text;
+
+                comm.send(comData);
+
                 txtSend.Text = "";
             }
         }
@@ -99,22 +143,22 @@ namespace BPWorker
             }
         }
 
-        private void btnSendXML_Click(object sender, RoutedEventArgs e)
+        private void NewChatEntry(string msg)
         {
-            comData = new ComData();
-            comData.error = ErrorCode.messageOK;
-            comData.status = StatusCode.idle;
-            comData.name = "Test";
-            comData.id = 1;
+            AddLogEntry(msg);
+        }
 
-            XmlSerializer serializer = new XmlSerializer(typeof(ComData));
-            StringWriter sWriter = new StringWriter();
-            serializer.Serialize(sWriter, comData);
+        private void DataReceived(ComData comData)
+        {
+            if(comData.message != "" && comData.message != null)
+            {
+                AddLogEntry("[" + comData.name + "] " + comData.message);
+            }
+        }
 
-            string myXML = sWriter.ToString();
-            Console.WriteLine("Sending XML:\n" + myXML);
-            comm.send(myXML.Replace(Environment.NewLine, ""));
-
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            comm.stop();
         }
     }
 }

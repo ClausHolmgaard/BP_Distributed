@@ -15,16 +15,18 @@ using System.Xml.Serialization;
 namespace BPCoordinator
 {
 
-    /*
+    /* TCP communication is modified from
     https://scatteredcode.wordpress.com/2013/04/29/creating-a-single-threaded-multi-user-tcp-server-in-net/
     */
-    
-    public delegate void MessageReceivedDelegate(NetworkClient client, string message);
-    public delegate void ClientDisconnectedDelegate(NetworkClient client);
-    public delegate void NewClientDelegate();
 
     public class NetworkClient
     {
+        public delegate void MessageReceivedDelegate(NetworkClient client, ComData comData);
+        public delegate void ClientDisconnectedDelegate(NetworkClient client);
+
+        public event MessageReceivedDelegate MessageReceived;
+        public event ClientDisconnectedDelegate ClientDisconnected;
+
         private TcpClient socket;
         private NetworkStream networkStream;
         private int id;
@@ -34,21 +36,16 @@ namespace BPCoordinator
         public string name;
         public TcpClient Socket;
 
-        public event MessageReceivedDelegate MessageReceived;
-        public event ClientDisconnectedDelegate ClientDisconnected;
-
         public NetworkClient(TcpClient clientSocket, int clientId)
         {
             socket = clientSocket;
             id = clientId;
-            name = "";
         }
 
         private void MarkAsDisconnected()
         {
             IsActive = false;
-            if (ClientDisconnected != null)
-                ClientDisconnected(this);
+            ClientDisconnected(this);
         }
 
         public async Task ReceiveInput()
@@ -62,7 +59,6 @@ namespace BPCoordinator
                 {
                     try
                     {
-                        Console.WriteLine("Server: Something received...");
                         var content = await reader.ReadLineAsync();
 
                         // If content is null, that means the connection has been gracefully disconnected
@@ -75,15 +71,27 @@ namespace BPCoordinator
 
                         if (MessageReceived != null)
                         {
-                            Console.WriteLine("Server: Message received...");
-                            MessageReceived(this, content);
+                            Console.WriteLine("Server: Received: " + content);
+                            ComData comData = new ComData();
+                            comData.FromXML(content);
+
+                            if(comData != null)
+                            {
+                                if(comData.name != null && comData.name != "")
+                                {
+                                    Console.WriteLine("Settings name: " + comData.name);
+                                    name = comData.name;
+                                }
+                            }
+
+                            MessageReceived(this, comData);
                         }
                     }
 
                     // If the tcp connection is ungracefully disconnected, it will throw an exception
                     catch (IOException)
                     {
-                        Console.WriteLine("Error handling message");
+                        Console.WriteLine("Server: Error handling message");
                         MarkAsDisconnected();
                         return;
                     }
@@ -91,7 +99,7 @@ namespace BPCoordinator
             }
         }
 
-        public async Task SendLine(string line)
+        public async Task SendLine(ComData comData)
         {
             if (!IsActive)
                 return;
@@ -99,7 +107,7 @@ namespace BPCoordinator
             try
             {
                 var writer = new StreamWriter(networkStream);
-                await writer.WriteLineAsync(line);
+                await writer.WriteLineAsync(comData.GetXML());
                 writer.Flush();
             }
             catch (IOException)
@@ -113,7 +121,11 @@ namespace BPCoordinator
 
     class Listener
     {
-        public event NewClientDelegate NewClientEvent;
+        public delegate void ClientsChangedDelegate();
+        public delegate void ComDataReceviedDelegate(ComData cmData);
+
+        public event ClientsChangedDelegate ClientsChangedEvent;
+        public event ComDataReceviedDelegate ComDataReceivedEvent;
 
         private TcpListener listener;
         private List<NetworkClient> networkClients;
@@ -144,9 +156,12 @@ namespace BPCoordinator
             networkClients = new List<NetworkClient>();
             networkClientReceiveInputTasks = new List<KeyValuePair<Task, NetworkClient>>();
 
+            ComDataReceivedEvent += HandleData.HandleComData;
+
             AddLog = log;
         }
 
+        /*
         private void AddLogEntry(string msg)
         {
             // Much pretty, very work...
@@ -155,50 +170,34 @@ namespace BPCoordinator
                     AddLog(msg);
                 }));
         }
+        */
 
         public List<NetworkClient> GetClients()
         {
             return networkClients;
         }
 
-        private async void ProcessClientCommand(NetworkClient client, string command)
+        private void ProcessClientCommand(NetworkClient client, ComData comData)
         {
-            XmlSerializer serializer = new XmlSerializer(typeof(ComData));
-            ComData comData = new ComData();
-            StringReader sReader = new StringReader(command);
-            try
-            {
-                comData = (ComData)serializer.Deserialize(sReader);
-                AddLogEntry("Object received:");
-                AddLogEntry("ID: " + comData.id);
-                AddLogEntry("Name: " + comData.name);
-                AddLogEntry("Error: " + (int)comData.error);
-                AddLogEntry("Status: " + (int)comData.status);
+            ComDataReceivedEvent(comData);
 
-            }
-            catch(InvalidOperationException)
-            {
-                // Ikke XML
-                AddLogEntry("Client " + client.Id + " wrote: " + command);
-                foreach (var netClient in networkClients)
-                    if (netClient.IsActive)
-                        await netClient.SendLine(command);
-            }
-
+            // Adding this to catch name changes, consider finding a better way to do it, so updates does not happen as often.
+            ClientsChangedEvent();
         }
 
         private void ClientDisconnected(NetworkClient client)
         {
+            
             client.IsActive = false;
-            client.Socket.Close();
-
+            
             if (networkClients.Contains(client))
             {
                 Console.WriteLine("Removing client " + client.Id);
                 networkClients.Remove(client);
             }
 
-            AddLogEntry("Client " + client.Id + " disconnected");
+            Console.WriteLine("Client " + client.Id + " disconnected");
+            ClientsChangedEvent();
         }
 
         private void ClientConnected(TcpClient client, int clientNumber)
@@ -206,23 +205,23 @@ namespace BPCoordinator
             var netClient = new NetworkClient(client, clientNumber);
             netClient.MessageReceived += ProcessClientCommand;
             netClient.ClientDisconnected += ClientDisconnected;
+            netClient.Id = clientNumber;
 
             // Save the Resulting task from ReceiveInput as a Task so we can check for any unhandled exceptions that may have occured
             KeyValuePair<Task, NetworkClient> kp = new KeyValuePair<Task, NetworkClient>(netClient.ReceiveInput(), netClient);
-            //kp.Key.Start();
             networkClientReceiveInputTasks.Add(kp);
 
             networkClients.Add(netClient);
-            AddLogEntry("Client " + clientNumber + " Connected");
+            Console.WriteLine("Client " + clientNumber + " Connected");
             Console.WriteLine("Server: Client connected.");
-            NewClientEvent();
+            ClientsChangedEvent();
         }
 
         private async Task ListenForClients()
         {
             var numClients = 0;
 
-            AddLogEntry("Listening for clients...");
+            Console.WriteLine("Listening for clients...");
             while (IsRunning)
             {
                 var tcpClient = await listener.AcceptTcpClientAsync();
@@ -230,7 +229,7 @@ namespace BPCoordinator
                 numClients++;
             }
 
-            AddLogEntry("Stopping listener...");
+            Console.WriteLine("Stopping listener...");
             listener.Stop();
         }
 
@@ -247,42 +246,53 @@ namespace BPCoordinator
             }
             catch(SocketException)
             {
-                AddLogEntry("Problem connecting. Are you already connected?");
+                Console.WriteLine("Problem connecting. Are you already connected?");
             }
             IsRunning = true;
 
             clientListenTask = ListenForClients();
         }
 
-        public async void SendAll(string message)
+        public string GetNameFromID(int id)
         {
-            string serverMessage = "Server says: " + message;
-            AddLogEntry(serverMessage);
-
-            Console.WriteLine("Clients: " + networkClients.Count);
-            foreach (NetworkClient netClient in networkClients)
+            foreach(NetworkClient netClient in networkClients)
             {
-                Console.WriteLine("Sending message to client " + netClient.Id);
-                if (netClient.IsActive)
+                if(netClient.Id == id)
                 {
-                    await netClient.SendLine(serverMessage + '\n');
+                    if(netClient.name != "" && netClient.name != null)
+                    {
+                        return netClient.name;
+                    }
+                    else
+                    {
+                        return "NoName";
+                    }
                 }
             }
+            return null;
         }
 
-        public async void SendToClient(string message, int id)
+        public async void Send(ComData comData, int id=-1)
         {
-            string serverMessage = "Server says: " + message;
-
             foreach (NetworkClient netClient in networkClients)
             {
-                if(netClient.Id == id && netClient.IsActive)
+                if (id != -1 && id == netClient.Id)
                 {
-                    Console.WriteLine("Sending message to client " + netClient.Id + "(" + message + ")");
-                    await netClient.SendLine(serverMessage + '\n');
+                    Console.WriteLine("Sending message to client " + netClient.Id);
+                    if (netClient.IsActive)
+                    {
+                        await netClient.SendLine(comData);
+                    }
+                }
+                else if(id == -1)
+                {
+                    Console.WriteLine("Sending message to client " + netClient.Id);
+                    if (netClient.IsActive)
+                    {
+                        await netClient.SendLine(comData);
+                    }
                 }
             }
         }
     }
-    
 }

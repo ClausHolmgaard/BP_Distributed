@@ -16,7 +16,9 @@
         <Label Content="IP" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top"/>
         <Label Content="Port" HorizontalAlignment="Left" Margin="159,10,0,0" VerticalAlignment="Top"/>
         <Button x:Name="btnConnect" Content="Connect" HorizontalAlignment="Left" Margin="10,64,0,0" VerticalAlignment="Top" Width="75" Click="btnConnect_Click"/>
-        <Button x:Name="btnSendXML" Content="Send XML" HorizontalAlignment="Left" Margin="347,456,0,0" VerticalAlignment="Top" Width="75" Click="btnSendXML_Click"/>
+        <TextBox x:Name="txtName" HorizontalAlignment="Left" Height="23" Margin="10,125,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="218"/>
+        <Label Content="Name" HorizontalAlignment="Left" Margin="10,100,0,0" VerticalAlignment="Top"/>
+        <Button x:Name="btnDisconnect" Content="Disconnect" HorizontalAlignment="Left" Margin="153,64,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click"/>
 
     </Grid>
 </Window>

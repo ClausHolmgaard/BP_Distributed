@@ -59,7 +59,6 @@ namespace BPCoordinator
                 itm.Content = clientInfo;
                 lstClients.Items.Add(itm);
             }
-
         }
 
         private void AddIps()
@@ -86,12 +85,22 @@ namespace BPCoordinator
             lstLog.Items.Add(itm);
         }
 
+        private void AddChatEntry(string message, string name)
+        {
+            string msg = "[" + name + "] " + message;
+            AddLogEntry(msg);
+
+            ComData cd = new ComData();
+            cd.message = message;
+            cd.name = name;
+
+            listener.Send(cd);
+        }
+
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
-            listener.SendAll(txtSend.Text);
+            AddChatEntry(txtSend.Text, "Server");
             txtSend.Text = "";
-
-            UpdateClients();
         }
 
         private void txtSend_KeyDown(object sender, KeyEventArgs e)
@@ -110,7 +119,11 @@ namespace BPCoordinator
                 AddLogEntry("Error parsing port: " + txtPort.Text);
             }
             listener = new Listener(cmbIp.Text, port, AddLogEntry);
-            listener.NewClientEvent += UpdateClients;
+            listener.ClientsChangedEvent += UpdateClients;
+
+            // Echo messages to clients
+            HandleData.NewMessageEvent += AddChatEntry;
+
             listener.Run();
         }
 
@@ -120,13 +133,18 @@ namespace BPCoordinator
             {
                 string selectedItem = item.Content.ToString();
                 Int32.TryParse(selectedItem.Substring(selectedItem.LastIndexOf("ID: ")).Replace("ID: ", ""), out int clientID);
-                Console.WriteLine("Sending message to client " + clientID);
 
-                listener.SendToClient(txtSend.Text, clientID);
+                string clientName = listener.GetNameFromID(clientID);
+                string msg = "[Server -> " + clientName + "] " + txtSend.Text;
+
+                ComData cd = new ComData();
+                cd.message = msg;
+
+                AddLogEntry(msg);
+                listener.Send(cd, clientID);
             }
 
             string selected = lstClients.SelectedItems.ToString();
-            
         }
     }
 }

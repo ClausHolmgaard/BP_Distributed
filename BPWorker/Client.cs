@@ -8,102 +8,119 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 
+using BPShared;
+
 namespace BPWorker
 {
 
     class Client
     {
+        public delegate void ComDataReceivedDelegate(ComData comData);
+        public delegate void ConnectionChangedDelegate();
+
+        public event ComDataReceivedDelegate ComDataReceivedEvent;
+        public event ConnectionChangedDelegate ConnectionChangedEvent;
+
         TcpClient tcpCon;
         private string ip;
         private int port;
         public Action<string> AddLog;
         Thread listenThread;
-        bool isRunning = false;
+        public bool isConnected { get; private set; }
 
         public Client(Action<string> log)
         {
             AddLog = log;
-            tcpCon = new TcpClient();
         }
 
         public void connect(string remoteIp, int remotePort)
         {
+            tcpCon = new TcpClient();
             ip = remoteIp;
             port = remotePort;
-            isRunning = true;
 
-            AddLogEntry("Connecting to " + ip + ":" + port);
+            Console.WriteLine("Worker: Connecting to " + ip + ":" + port);
 
             try
             {
                 if (!tcpCon.Connected)
                 {
                     tcpCon.Connect(ip, port);
-                    AddLogEntry("Connected to " + ip + ":" + port.ToString());
+                    Console.WriteLine("Worker: Connected to " + ip + ":" + port.ToString());
                 }
                 else
                 {
-                    AddLogEntry("Already connected");
+                    Console.WriteLine("Worker: Already connected");
                 }
                 
             }
             catch (SocketException)
             {
-                AddLogEntry("Error connecting to " + ip + ":" + port.ToString());
+                Console.WriteLine("Error connecting to " + ip + ":" + port.ToString());
                 return;
             }
 
+            isConnected = true;
+
             listenThread = new Thread(listen);
+            listenThread.SetApartmentState(ApartmentState.STA);
             listenThread.Start();
+
+            ConnectionChangedEvent();
         }
 
         public void stop()
         {
-            isRunning = false;
-            listenThread.Join();
+            tcpCon.GetStream().Close();
+            tcpCon.Close();
+
+            isConnected = false;
+            //listenThread.Join();
+            ConnectionChangedEvent();
         }
 
         private void listen()
         {
-            while (isRunning)
+            while (isConnected)
             {
                 NetworkStream nStream = tcpCon.GetStream();
                 StreamReader nStreamReader = new StreamReader(nStream);
 
-                string read = nStreamReader.ReadLine();
+                string read;
+                try
+                {
+                    read = nStreamReader.ReadLine();
+                }
+                catch (IOException)
+                {
+                    Console.WriteLine("Socket read interruptet, assuming connection is beeing closed");
+                    return;
+                }
+                
                 Console.WriteLine("Worker: Received: " + read);
-                AddLogEntry(read);
+
+                ComData comData = new ComData();
+                comData.FromXML(read);
+
+                ComDataReceivedEvent(comData);
             }
+
+            ConnectionChangedEvent();
         }
 
-        private void AddLogEntry(string msg)
-        {
-            // Much pretty, very work...
-            Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
-                new Action(() => {
-                    AddLog(msg);
-                }));
-        }
-
-        public bool getConnected()
-        {
-            return tcpCon.Connected;
-        }
-
-        public void send(string msg)
+        public void send(ComData comData)
         {
             if (tcpCon.Connected)
             {
-                //AddLogEntry("Sending: " + msg);
                 NetworkStream networkStream = tcpCon.GetStream();
 
-                byte[] bytesToSend = ASCIIEncoding.ASCII.GetBytes(msg + '\n');
+                byte[] bytesToSend = ASCIIEncoding.ASCII.GetBytes(comData.GetXML() + '\n');
+                Console.WriteLine("Worker: Sending: " + comData.GetXML());
                 networkStream.Write(bytesToSend, 0, bytesToSend.Length);
-                Console.WriteLine("Worker: Message sent");
             }
             else
             {
-                AddLogEntry("Not connected");
+                Console.WriteLine("Not connected");
             }
         }
 
