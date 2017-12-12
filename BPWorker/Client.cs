@@ -12,7 +12,6 @@ using BPShared;
 
 namespace BPWorker
 {
-
     class Client
     {
         public delegate void ComDataReceivedDelegate(ComData comData);
@@ -24,9 +23,14 @@ namespace BPWorker
         TcpClient tcpCon;
         private string ip;
         private int port;
+        public bool acceptingWork { get; set; }
+        public string name { get; set; }
+        public bool isConnected { get; private set; }
+   
         public Action<string> AddLog;
         Thread listenThread;
-        public bool isConnected { get; private set; }
+        Thread keepAliveThread;
+        
 
         public Client(Action<string> log)
         {
@@ -66,16 +70,21 @@ namespace BPWorker
             listenThread.SetApartmentState(ApartmentState.STA);
             listenThread.Start();
 
+            keepAliveThread = new Thread(KeepAlive);
+            keepAliveThread.Start();
+
             ConnectionChangedEvent();
         }
 
         public void stop()
         {
-            tcpCon.GetStream().Close();
-            tcpCon.Close();
+            if (tcpCon != null)
+            {
+                tcpCon.GetStream().Close();
+                tcpCon.Close();
+            }
 
             isConnected = false;
-            //listenThread.Join();
             ConnectionChangedEvent();
         }
 
@@ -121,6 +130,22 @@ namespace BPWorker
             else
             {
                 Console.WriteLine("Not connected");
+            }
+        }
+        
+        private void KeepAlive()
+        {
+            while (isConnected)
+            {
+                ComData comData = new ComData();
+                comData.acceptingWork = acceptingWork;
+                comData.name = name;
+                comData.status = StatusCode.idle;
+
+                Console.WriteLine("Worker: Sending keepalive");
+                send(comData);
+
+                Thread.Sleep(1000);
             }
         }
 

@@ -57,6 +57,15 @@ namespace BPCoordinator
                 clientInfo += " - ID: " + client.Id;
                 ListBoxItem itm = new ListBoxItem();
                 itm.Content = clientInfo;
+                if (client.acceptingWork)
+                {
+                    itm.Background = Brushes.Green;
+                }
+                else
+                {
+                    itm.Background = Brushes.Red;
+                }
+
                 lstClients.Items.Add(itm);
             }
         }
@@ -87,8 +96,11 @@ namespace BPCoordinator
 
         private void AddChatEntry(string message, string name)
         {
-            string msg = "[" + name + "] " + message;
-            AddLogEntry(msg);
+            if (message != "" && message != null)
+            {
+                string msg = "[" + name + "] " + message;
+                AddLogEntry(msg);
+            }
 
             ComData cd = new ComData();
             cd.message = message;
@@ -140,7 +152,10 @@ namespace BPCoordinator
                 ComData cd = new ComData();
                 cd.message = msg;
 
-                AddLogEntry(msg);
+                if (msg != "" && msg != null)
+                {
+                    AddLogEntry(msg);
+                }
                 listener.Send(cd, clientID);
             }
 

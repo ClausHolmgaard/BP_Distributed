@@ -34,6 +34,7 @@ namespace BPCoordinator
         public bool IsActive;
         public int Id;
         public string name;
+        public bool acceptingWork { get; set; }
         public TcpClient Socket;
 
         public NetworkClient(TcpClient clientSocket, int clientId)
@@ -82,6 +83,8 @@ namespace BPCoordinator
                                     Console.WriteLine("Settings name: " + comData.name);
                                     name = comData.name;
                                 }
+
+                                acceptingWork = comData.acceptingWork;
                             }
 
                             MessageReceived(this, comData);
@@ -160,17 +163,6 @@ namespace BPCoordinator
 
             AddLog = log;
         }
-
-        /*
-        private void AddLogEntry(string msg)
-        {
-            // Much pretty, very work...
-            Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
-                new Action(() => {
-                    AddLog(msg);
-                }));
-        }
-        */
 
         public List<NetworkClient> GetClients()
         {

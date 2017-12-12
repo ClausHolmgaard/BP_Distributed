@@ -7,7 +7,9 @@ namespace BPShared
 {
     public class Helpers
     {
-        // Modified from https://stackoverflow.com/a/24814027
+        /* Modified from
+        https://stackoverflow.com/a/24814027
+        */
         public string[] GetAllLocalIPv4()
         {
             List<string> ipAddrList = new List<string>();
@@ -26,5 +28,7 @@ namespace BPShared
             }
             return ipAddrList.ToArray();
         }
+
+
     }
 }

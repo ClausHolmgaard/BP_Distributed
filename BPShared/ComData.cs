@@ -19,6 +19,7 @@ namespace BPShared
         public StatusCode status { get; set; }
         public string name { get; set; }
         public string message { get; set; }
+        public bool acceptingWork { get; set; }
 
         public string GetXML()
         {
@@ -40,6 +41,7 @@ namespace BPShared
                 status = tmpComData.status;
                 name = tmpComData.name;
                 message = tmpComData.message;
+                acceptingWork = tmpComData.acceptingWork;
             }
             catch (InvalidOperationException)
             {

@@ -16,6 +16,7 @@ using System.Windows.Shapes;
 using BPShared;
 using System.Xml.Serialization;
 using System.IO;
+using System.Threading;
 
 namespace BPWorker
 {
@@ -47,54 +48,20 @@ namespace BPWorker
             txtName.Text = Environment.MachineName;
 
             UpdateUI();
+            UpdateComm();
             txtIp.Focus();
         }
 
-        private void AddLog(string msg)
+        private void Window_Closed(object sender, EventArgs e)
         {
-            ListBoxItem itm = new ListBoxItem();
-            itm.Content = msg;
-            lstLog.Items.Add(itm);
-        }
-
-        private void AddLogEntry(string msg)
-        {
-            // Much pretty, very work...
-            Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
-                new Action(() => {
-                    AddLog(msg);
-                }));
-        }
-
-        private void UpdateUI()
-        { 
-            if(comm.isConnected)
-            {
-                btnConnect.IsEnabled = false;
-                txtIp.IsEnabled = false;
-                txtPort.IsEnabled = false;
-
-                btnDisconnect.IsEnabled = true;
-                txtSend.IsEnabled = true;
-                btnSend.IsEnabled = true;
-            }
-            else
-            {
-                btnConnect.IsEnabled = true;
-                txtIp.IsEnabled = true;
-                txtPort.IsEnabled = true;
-
-                btnDisconnect.IsEnabled = false;
-                txtSend.IsEnabled = false;
-                btnSend.IsEnabled = false;
-            }
+            disconnect();
         }
 
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
+            UpdateComm();
             if (txtSend.Text != "")
             {
-                //comm.send(txtSend.Text);
                 comData = new ComData();
                 comData.status = StatusCode.idle;
                 comData.name = txtName.Text;
@@ -116,15 +83,7 @@ namespace BPWorker
 
         private void btnConnect_Click(object sender, RoutedEventArgs e)
         {
-            bool portSuccess = Int32.TryParse(txtPort.Text, out int port);
-            if(!portSuccess)
-            {
-                AddLogEntry("Error parsing port...");
-                return;
-            }
-
-            comm.connect(txtIp.Text, port);
-
+            connect();
         }
 
         private void txtIp_KeyDown(object sender, KeyEventArgs e)
@@ -143,6 +102,85 @@ namespace BPWorker
             }
         }
 
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            disconnect();
+        }
+
+        private void chkAcceptWork_Checked(object sender, RoutedEventArgs e)
+        {
+            UpdateComm();
+        }
+
+        private void chkAcceptWork_Unchecked(object sender, RoutedEventArgs e)
+        {
+            UpdateComm();
+        }
+
+        private void AddLog(string msg)
+        {
+            ListBoxItem itm = new ListBoxItem();
+            itm.Content = msg;
+            lstLog.Items.Add(itm);
+        }
+
+        private void AddLogEntry(string msg)
+        {
+            // Much pretty, very work...
+            Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
+                new Action(() => {
+                    AddLog(msg);
+                }));
+        }
+
+        private void UpdateComm()
+        {
+            comm.acceptingWork = chkAcceptWork.IsChecked == true;
+            comm.name = txtName.Text;
+        }
+
+        private void UpdateUI()
+        {
+            if (comm.isConnected)
+            {
+                btnConnect.IsEnabled = false;
+                txtIp.IsEnabled = false;
+                txtPort.IsEnabled = false;
+
+                btnDisconnect.IsEnabled = true;
+                txtSend.IsEnabled = true;
+                btnSend.IsEnabled = true;
+            }
+            else
+            {
+                btnConnect.IsEnabled = true;
+                txtIp.IsEnabled = true;
+                txtPort.IsEnabled = true;
+
+                btnDisconnect.IsEnabled = false;
+                txtSend.IsEnabled = false;
+                btnSend.IsEnabled = false;
+            }
+        }
+
+        private void connect()
+        {
+            bool portSuccess = Int32.TryParse(txtPort.Text, out int port);
+            if (!portSuccess)
+            {
+                AddLogEntry("Error parsing port...");
+                return;
+            }
+
+            comm.connect(txtIp.Text, port);
+            
+        }
+
+        private void disconnect()
+        {
+            comm.stop();
+        }
+
         private void NewChatEntry(string msg)
         {
             AddLogEntry(msg);
@@ -156,9 +194,5 @@ namespace BPWorker
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            comm.stop();
-        }
     }
 }
