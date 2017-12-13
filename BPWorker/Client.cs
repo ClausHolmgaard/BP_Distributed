@@ -26,16 +26,9 @@ namespace BPWorker
         public bool acceptingWork { get; set; }
         public string name { get; set; }
         public bool isConnected { get; private set; }
-   
-        public Action<string> AddLog;
+
         Thread listenThread;
         Thread keepAliveThread;
-        
-
-        public Client(Action<string> log)
-        {
-            AddLog = log;
-        }
 
         public void connect(string remoteIp, int remotePort)
         {

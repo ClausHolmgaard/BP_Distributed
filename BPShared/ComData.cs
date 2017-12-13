@@ -6,6 +6,25 @@ using System.Xml.Serialization;
 
 namespace BPShared
 {
+    interface ISerializable
+    {
+        StatusCode status { get; set; }
+        string name { get; set; }
+        string message { get; set; }
+        bool acceptingWork { get; set; }
+
+        string GetXML();
+    }
+
+    interface IDeserializable
+    {
+        StatusCode status { get; set; }
+        string name { get; set; }
+        string message { get; set; }
+        bool acceptingWork { get; set; }
+
+        void FromXML(string xml);
+    }
 
     public enum StatusCode
     {
@@ -14,7 +33,7 @@ namespace BPShared
         errorState = -1,
     }
 
-    public class ComData
+    public class ComData : ISerializable, IDeserializable
     {
         public StatusCode status { get; set; }
         public string name { get; set; }

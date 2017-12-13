@@ -21,14 +21,11 @@ namespace BPCoordinator
     /// </summary>
     public partial class MainWindow : Window
     {
-        private Helpers hlp;
         private Listener listener;
 
         public MainWindow()
         {
             InitializeComponent();
-
-            hlp = new Helpers();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -76,7 +73,7 @@ namespace BPCoordinator
             cmbAll.Content = "All";
             cmbIp.Items.Add(cmbAll);
 
-            string[] ips = hlp.GetAllLocalIPv4();
+            string[] ips = Helpers.GetAllLocalIPv4();
             foreach (string ip in ips)
             {
                 ComboBoxItem cmbItem = new ComboBoxItem();
@@ -160,6 +157,11 @@ namespace BPCoordinator
             }
 
             string selected = lstClients.SelectedItems.ToString();
+        }
+
+        private void btnProcess_Click(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

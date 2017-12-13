@@ -25,7 +25,6 @@ namespace BPWorker
     /// </summary>
     public partial class MainWindow : Window
     {
-        Helpers hlp;
         Client comm;
         ComData comData;
 
@@ -33,15 +32,15 @@ namespace BPWorker
         {
             InitializeComponent();
 
-            hlp = new Helpers();
-            comm = new Client(AddLogEntry);
+            //hlp = new Helpers();
+            comm = new Client();
             comm.ComDataReceivedEvent += DataReceived;
             comm.ConnectionChangedEvent += UpdateUI;
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            string[] ips = hlp.GetAllLocalIPv4();
+            string[] ips = Helpers.GetAllLocalIPv4();
             txtIp.Text = ips[0];
             txtPort.Text = "11002";
 
@@ -194,5 +193,20 @@ namespace BPWorker
             }
         }
 
+        private void btnTestWork_Click(object sender, RoutedEventArgs e)
+        {
+            string file = @"D:\Misc\EncryptedFile.exe";
+            //AppDomain encryptedFile = AppDomain.CreateDomain("New Appdomain");
+
+            //char[] start = { 'a' };
+            //char[] end = { 'z', 'z', 'z', 'z' };
+            //List<Tuple<Char[], char[]>> lst = BreakPass.Split(100000, start, end, true, false, false, false);
+
+            BreakPass bp = new BreakPass(true, false, false, false);
+
+            bp.run(2, file);
+
+
+        }
     }
 }
