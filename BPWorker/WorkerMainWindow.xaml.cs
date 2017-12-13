@@ -195,17 +195,18 @@ namespace BPWorker
 
         private void btnTestWork_Click(object sender, RoutedEventArgs e)
         {
-            string file = @"C:\Temp\EncryptedFile_6c.exe";
+            string file = @"C:\Users\Claus\Documents\Mercantec\Programmering_III\EncryptedFile_6pass.exe";
+            //string file = @"C:\Users\Claus\Documents\Mercantec\Programmering_III\EncryptedFile.exe";
             //AppDomain encryptedFile = AppDomain.CreateDomain("New Appdomain");
 
             //char[] start = { 'a' };
             //char[] end = { 'z', 'z', 'z', 'z' };
             //List<Tuple<Char[], char[]>> lst = BreakPass.Split(100000, start, end, true, false, false, false);
 
-            BreakPass bp = new BreakPass(1, 5, true, true, false, false, file);
+            BreakPass bp = new BreakPass(1, 6, true, false, false, false, file);
 
             //bp.run(2, file);
-            bp.CrackManagedExe(4, 10000000);
+            bp.CrackManagedExe(4, 1000000);
             //bp.CrackAnyExe(2);
 
 

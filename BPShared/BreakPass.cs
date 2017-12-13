@@ -22,10 +22,13 @@ namespace BPShared
         private static char[] numberChars = { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
         private static char[] symbolChars = { '-', '_', ' ', ',', '.', '!' };
         private List<char> validChars;
-        private char[] start;
-        private char[] end;
+
         private string passWord;
         private string checkFile;
+
+        int min;
+        int max;
+
         //private List<Tuple<char[], char[]>> batches;
         private ConcurrentBag<Tuple<char[], char[]>> batches;
         AppDomain thisDomain = AppDomain.CurrentDomain;
@@ -45,16 +48,8 @@ namespace BPShared
             if (symbols)
                 validChars.AddRange(symbolChars);
 
-            start = new char[minLength];
-            for (int i = 0; i < minLength; i++)
-            {
-                start[i] = validChars.First();
-            }
-            end = new char[maxLength];
-            for (int i = 0; i < maxLength; i++)
-            {
-                end[i] = validChars.Last();
-            }
+            min = minLength;
+            max = maxLength;
         }
 
         public void CrackAnyExe(int workers, int batchSize)
@@ -78,7 +73,7 @@ namespace BPShared
 
         public void Run(int workers, int batchSize)
         {
-            Split(batchSize, start, end);
+            Split(batchSize);
 
             passWord = "";
 
@@ -107,52 +102,138 @@ namespace BPShared
             }
         }
 
-        private void Split(int size, char[] start, char[] end)
+        private void Split(int batchSize)
         {
             batches = new ConcurrentBag<Tuple<char[], char[]>>();
-            Tuple<char[], char[]> batch;
-            bool done = false;
 
-            while (!done)
+            for (int i = min; i <= max; i++)
             {
-                int counter = 0;
-                for (int i = start.Length; i < end.Length + 1; i++)
+                char[] startPass = new char[i];
+                char[] endPass;
+
+                char[] charBatchSize = IntToValidChar(batchSize, i);
+
+                for (int n = 0; n < startPass.Length; n++)
                 {
-                    char[] endPass;
-                    if (i == start.Length)
-                    {
-                        endPass = (char[])start.Clone();
-                    }
-                    else
-                    {
-                        endPass = new char[i];
-                        for (int c = 0; c < endPass.Length; c++)
-                        {
-                            endPass[c] = validChars.First();
-                        }
-                    }
-
-                    while (counter < size)
-                    {
-                        counter++;
-
-                        if (!endPass.SequenceEqual(end) && !endPass.All(c => c == validChars.Last()))
-                        {
-                            endPass = GetNext(endPass);
-                        }
-                        if (endPass.SequenceEqual(end))
-                        {
-                            done = true;
-                        }
-
-                    }
-                    batch = new Tuple<char[], char[]>((char[])start.Clone(), (char[])endPass.Clone());
-                    batches.Add(batch);
-                    Console.WriteLine("Added batch: " + new string(batch.Item1) + " to " + new string(batch.Item2));
-                    start = (char[])endPass.Clone();
+                    startPass[n] = validChars.First();
                 }
+
+                if (charBatchSize.Length > startPass.Length)
+                {
+                    endPass = new char[i];
+                    for (int n = 0; n < endPass.Length; n++)
+                    {
+                        endPass[n] = validChars.Last();
+                    }
+                    Tuple<char[], char[]> batch = new Tuple<char[], char[]>((char[])startPass.Clone(), (char[])endPass.Clone());
+                    Console.WriteLine("Added batch: " + new string(batch.Item1) + " to " + new string(batch.Item2));
+                    batches.Add(batch);
+                    continue;
+                }
+
+                bool done = false;
+
+                while (!done)
+                {
+                    endPass = AddValidChars(startPass, charBatchSize);
+                    Tuple<char[], char[]> batch = new Tuple<char[], char[]>((char[])startPass.Clone(), (char[])endPass.Clone());
+                    Console.WriteLine("Added batch: " + new string(batch.Item1) + " to " + new string(batch.Item2));
+                    batches.Add(batch);
+                    startPass = (char[])endPass.Clone();
+
+                    if (endPass.All(c => c == validChars.Last()))
+                    {
+                        done = true;
+                    }
+                }
+
             }
-            Console.WriteLine(batches.Count + " bathces in total");
+
+            Console.WriteLine("Total batches: " + batches.Count);
+        }
+
+        private char[] AddValidChars(char[] vchar1, char[] vchar2)
+        {
+            // If resulting array is long, just return max result. i.e. {'x', 'x'} + {'x', 'x'} = {'å', 'å'}  (for lower case only)
+
+            if (vchar1.Length != vchar2.Length)
+            {
+                throw new ArgumentException("Arguments must be of same length");
+            }
+
+            char[] outChar = new char[vchar1.Length];
+
+            UInt64 vchar1Sum = 0;
+            UInt64 vchar2Sum = 0;
+            UInt64 maxSum = 0;
+
+            for (int i = 0; i < vchar1.Length; i++)
+            {
+                vchar1Sum += (UInt64)validChars.IndexOf(vchar1[i]) * (UInt64)Math.Pow(validChars.Count, vchar1.Length - i - 1);
+                vchar2Sum += (UInt64)validChars.IndexOf(vchar2[i]) * (UInt64)Math.Pow(validChars.Count, vchar1.Length - i - 1);
+                maxSum += ((UInt64)validChars.Count-1) * (UInt64)Math.Pow(validChars.Count, vchar1.Length - i - 1);
+            }
+
+            if (vchar1Sum + vchar2Sum > maxSum)
+            {
+                for (int i = 0; i < vchar1.Length; i++)
+                {
+                    outChar[i] = validChars.Last();
+                }
+                return outChar;
+            }
+
+            int remainder = 0;
+            for (int i = vchar1.Length - 1; i >= 0; i--)
+            {
+                int newInd = validChars.IndexOf(vchar1[i]) + validChars.IndexOf(vchar2[i]) + remainder;
+                if (newInd >= validChars.Count)
+                {
+                    remainder = newInd / validChars.Count;
+                    newInd = newInd - remainder * validChars.Count;
+                }
+                else
+                {
+                    remainder = 0;
+                }
+                outChar[i] = validChars[newInd];
+            }
+            return outChar;
+        }
+
+        private char[] IntToValidChar(int anInt, int padAmount = -1)
+        {
+            int len = 1;
+            while (Math.Pow(validChars.Count, len) <= anInt)
+            {
+                len++;
+            }
+
+            char[] outChar;
+            if (padAmount > len)
+            {
+                outChar = new char[padAmount];
+            }
+            else
+            {
+                outChar = new char[len];
+                padAmount = len;
+            }
+
+            for (int i = 0; i < outChar.Length; i++)
+            {
+                outChar[i] = validChars.First();
+            }
+
+            for (int i = padAmount - 1; i >= 0; i--)
+            {
+                int increasePerIncrement = (int)Math.Pow(validChars.Count, i);
+                int increments = anInt / increasePerIncrement;
+                outChar[padAmount - (i + 1)] = validChars[increments];
+                anInt -= increments * increasePerIncrement;
+            }
+
+            return outChar;
         }
 
         private char[] GetNext(char[] pass)
