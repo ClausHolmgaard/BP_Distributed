@@ -58,9 +58,10 @@ namespace BPShared
         {
             XmlSerializer serializer = new XmlSerializer(typeof(ComData));
             ComData comData = new ComDataToClient();
-            StringReader sReader = new StringReader(xml);
+            
             try
             {
+                StringReader sReader = new StringReader(xml);
                 ComDataToClient tmpComData = (ComDataToClient)serializer.Deserialize(sReader);
                 message = tmpComData.message;
                 name = tmpComData.name;
@@ -107,28 +108,4 @@ namespace BPShared
             }
         }
     }
-
-    public static class HandleData
-    {
-        public delegate void NewMessageDelegate(string msg, string name);
-
-        public static event NewMessageDelegate NewMessageEvent;
-
-        public static void HandleComData(ComData comData)
-        {
-            string name = "NoName";
-            if (comData.name != "" && comData.name != null)
-            {
-                name = comData.name;
-            }
-
-            if (comData.message != "")
-            {
-                NewMessageEvent(comData.message, name);
-
-            }
-        }
-
-    }
-
 }

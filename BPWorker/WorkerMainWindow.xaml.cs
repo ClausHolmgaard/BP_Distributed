@@ -27,6 +27,7 @@ namespace BPWorker
     {
         Client comm;
         ComDataToServer comData;
+        Thread doWork;
 
         public MainWindow()
         {
@@ -45,7 +46,7 @@ namespace BPWorker
             txtPort.Text = "11002";
 
             txtName.Text = Environment.MachineName;
-
+            txtThreads.Text = Environment.ProcessorCount.ToString();
             UpdateUI();
             UpdateComm();
             txtIp.Focus();
@@ -107,14 +108,35 @@ namespace BPWorker
             disconnect();
         }
 
+        private void Check_Click()
+        {
+            bool threadsSucces = Int32.TryParse(txtThreads.Text, out int threads);
+            bool batchSuccess = Int32.TryParse(txtBatchSize.Text, out int batchSize);
+
+            if(!threadsSucces)
+            {
+                MessageBox.Show("Threads must be a valid integer");
+                return;
+            }
+            if(!batchSuccess)
+            {
+                MessageBox.Show("Batch size must be a valid integer");
+                return;
+            }
+
+            UpdateComm();
+            comm.threads = threads;
+            comm.batchSize = batchSize;
+        }
+
         private void chkAcceptWork_Checked(object sender, RoutedEventArgs e)
         {
-            UpdateComm();
+            Check_Click();
         }
 
         private void chkAcceptWork_Unchecked(object sender, RoutedEventArgs e)
         {
-            UpdateComm();
+            Check_Click();
         }
 
         private void AddLog(string msg)
@@ -208,21 +230,42 @@ namespace BPWorker
             }
         }
         
+        private class WorkParams
+        {
+            public string file;
+            public Tuple<char[], char[]> batch;
+            public bool lower;
+            public bool upper;
+            public bool numbers;
+            public bool symbols;
+        }
+
         private void GotWork(string file, string start, string end, bool lower, bool upper, bool numbers, bool symbols)
         {
-            comm.SendWorkAccepted();
-
-            int batchSize = 100000;
             Tuple<char[], char[]> b = new Tuple<char[], char[]>(start.ToCharArray(), end.ToCharArray());
 
-            BreakPass bp = new BreakPass(lower, upper, numbers, symbols, file);
-            List<string> p = bp.CrackManagedExe(4, batchSize, b);
-            foreach (string s in p)
+            WorkParams wp = new WorkParams();
+            wp.file = file;
+            wp.batch = b;
+            wp.lower = lower;
+            wp.upper = upper;
+            wp.numbers = numbers;
+            wp.symbols = symbols;
+
+            doWork = new Thread(new ParameterizedThreadStart(CompleteWorkThread));
+            doWork.Start(wp);
+        }
+
+        private void CompleteWorkThread(object infoObj)
+        {
+            WorkParams p = (WorkParams)infoObj;
+
+            BreakPass bp = new BreakPass(p.lower, p.upper, p.numbers, p.symbols, p.file);
+            List<string> res = bp.CrackManagedExe(comm.threads, comm.batchSize, p.batch);
+            foreach (string s in res)
             {
                 comm.SendPassword(s);
             }
-
-            comm.SendWorkCompleted();
         }
 
     }

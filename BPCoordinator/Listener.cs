@@ -125,10 +125,14 @@ namespace BPCoordinator
     public class Listener
     {
         public delegate void ClientsChangedDelegate();
-        public delegate void ComDataReceviedDelegate(ComData cmData);
+        //public delegate void ComDataReceviedDelegate(ComData cmData);
+        public delegate void NewMessageDelegate(string msg, string name);
+        public delegate void passwordFoundDelegate(string password);
 
         public event ClientsChangedDelegate ClientsChangedEvent;
-        public event ComDataReceviedDelegate ComDataReceivedEvent;
+        //public event ComDataReceviedDelegate ComDataReceivedEvent;
+        public event NewMessageDelegate NewMessageEvent;
+        public event passwordFoundDelegate PasswordFoundEvent;
 
         private TcpListener listener;
         private List<NetworkClient> networkClients;
@@ -159,7 +163,7 @@ namespace BPCoordinator
             networkClients = new List<NetworkClient>();
             networkClientReceiveInputTasks = new List<KeyValuePair<Task, NetworkClient>>();
 
-            ComDataReceivedEvent += HandleData.HandleComData;
+            //ComDataReceivedEvent += HandleComData;
 
             AddLog = log;
         }
@@ -171,7 +175,8 @@ namespace BPCoordinator
 
         private void ProcessClientCommand(NetworkClient client, ComData comData)
         {
-            ComDataReceivedEvent(comData);
+            //ComDataReceivedEvent(comData);
+            HandleComData((ComDataToServer)comData);
 
             // Adding this to catch name changes, consider finding a better way to do it, so updates does not happen as often.
             ClientsChangedEvent();
@@ -262,6 +267,25 @@ namespace BPCoordinator
                 }
             }
             return null;
+        }
+
+        public void HandleComData(ComDataToServer comData)
+        {
+            string name = "NoName";
+            if (comData.name != "" && comData.name != null)
+            {
+                name = comData.name;
+            }
+
+            if (comData.message != "" && comData.message != null)
+            {
+                NewMessageEvent(comData.message, name);
+            }
+
+            if(comData.password != "" && comData.password != null)
+            {
+                PasswordFoundEvent(comData.password);
+            }
         }
 
         public async void Send(ComData comData, int id=-1)

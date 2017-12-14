@@ -31,8 +31,8 @@
         <ListBox x:Name="lstBatches" HorizontalAlignment="Left" Height="151" Margin="164,290,0,0" VerticalAlignment="Top" Width="241"/>
         <Label Content="Batches" HorizontalAlignment="Left" Margin="164,264,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.307,0.513"/>
         <Label Content="Batch size" HorizontalAlignment="Left" Margin="10,377,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtBatchSize" HorizontalAlignment="Left" Height="23" Margin="80,377,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" Text="10000"/>
-        <TextBox x:Name="txtFilename" HorizontalAlignment="Left" Height="23" Margin="10,243,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="395"/>
+        <TextBox x:Name="txtBatchSize" HorizontalAlignment="Left" Height="23" Margin="80,377,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" Text="100000" TextChanged="txtBatchSize_TextChanged"/>
+        <TextBox x:Name="txtFilename" HorizontalAlignment="Left" Height="23" Margin="10,243,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="395" Text="EncryptedFile.exe"/>
         <Label Content="File" HorizontalAlignment="Left" Margin="10,221,0,0" VerticalAlignment="Top"/>
 
     </Grid>

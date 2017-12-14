@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows;
@@ -116,6 +117,17 @@ namespace BPCoordinator
             listener.Send(cd);
         }
 
+        private void PasswordFound(string pass)
+        {
+            this.Dispatcher.Invoke(() =>
+            {
+                ListBoxItem itm = new ListBoxItem();
+                itm.Content = "Password found: " + pass;
+                itm.Background = Brushes.Blue;
+                lstLog.Items.Add(itm);
+            });
+        }
+
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
             AddChatEntry(txtSend.Text, "Server");
@@ -141,7 +153,8 @@ namespace BPCoordinator
             listener.ClientsChangedEvent += UpdateClients;
 
             // Echo messages to clients
-            HandleData.NewMessageEvent += AddChatEntry;
+            listener.NewMessageEvent += AddChatEntry;
+            listener.PasswordFoundEvent += PasswordFound;
 
             listener.Run();
         }
@@ -196,12 +209,12 @@ namespace BPCoordinator
             }
 
             hw = new HandleWorkers(minLength, maxLength, batchSize, txtFilename.Text, lower, upper, numbers, symbols);
-            hw.BatchUpdate += BachUpdate;
+            hw.BatchUpdate += BatchUpdate;
             hw.GetClients += ClientsForWorkerHandling;
             hw.SendClientWork += listener.SendWorkOrder;
         }
 
-        private void BachUpdate()
+        private void BatchUpdate()
         {
             this.Dispatcher.Invoke(() =>
             {
@@ -221,6 +234,11 @@ namespace BPCoordinator
                     lstBatches.Items.Add(itm);
                 });
             }
+        }
+
+        private void txtBatchSize_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -25,16 +26,23 @@ namespace BPWorker
         private int port;
         public bool acceptingWork { get; set; }
         public string name { get; set; }
+        public int threads { get; set; }
+        public int batchSize { get; set; }
         public bool isConnected { get; private set; }
 
         Thread listenThread;
+        Thread sendThread;
         Thread keepAliveThread;
+
+        ConcurrentQueue<ComDataToServer> tcpQueue;
 
         public void connect(string remoteIp, int remotePort)
         {
             tcpCon = new TcpClient();
             ip = remoteIp;
             port = remotePort;
+
+            tcpQueue = new ConcurrentQueue<ComDataToServer>();
 
             Console.WriteLine("Worker: Connecting to " + ip + ":" + port);
 
@@ -62,6 +70,9 @@ namespace BPWorker
             listenThread = new Thread(listen);
             listenThread.SetApartmentState(ApartmentState.STA);
             listenThread.Start();
+
+            sendThread = new Thread(Send);
+            sendThread.Start();
 
             keepAliveThread = new Thread(KeepAlive);
             keepAliveThread.Start();
@@ -105,27 +116,40 @@ namespace BPWorker
                 comData.FromXML(read);
 
                 ComDataReceivedEvent(comData);
+                
             }
 
             ConnectionChangedEvent();
         }
 
-        public void send(ComData comData)
+        public void Send()
         {
-            if (tcpCon.Connected)
+            while (isConnected)
             {
-                NetworkStream networkStream = tcpCon.GetStream();
+                if (tcpCon.Connected)
+                {
+                    ComDataToServer comData;
+                    if(tcpQueue.TryDequeue(out comData))
+                    {
+                        NetworkStream networkStream = tcpCon.GetStream();
 
-                byte[] bytesToSend = ASCIIEncoding.ASCII.GetBytes(comData.GetXML() + '\n');
-                Console.WriteLine("Worker: Sending: " + comData.GetXML());
-                networkStream.Write(bytesToSend, 0, bytesToSend.Length);
-            }
-            else
-            {
-                Console.WriteLine("Not connected");
+                        byte[] bytesToSend = ASCIIEncoding.ASCII.GetBytes(comData.GetXML() + '\n');
+                        Console.WriteLine("Worker: Sending: " + comData.GetXML());
+                        networkStream.Write(bytesToSend, 0, bytesToSend.Length);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Not connected");
+                }
             }
         }
-        
+
+        public void send(ComDataToServer comData)
+        {
+            tcpQueue.Enqueue(comData);
+        } 
+
         private void KeepAlive()
         {
             while (isConnected)
@@ -136,7 +160,8 @@ namespace BPWorker
                 comData.status = StatusCode.idle;
 
                 Console.WriteLine("Worker: Sending keepalive");
-                send(comData);
+                //send(comData);
+                tcpQueue.Enqueue(comData);
 
                 Thread.Sleep(1000);
             }
@@ -151,6 +176,9 @@ namespace BPWorker
                 comData.acceptingWork = false;
                 comData.name = name;
                 comData.status = StatusCode.processing;
+
+                //send((ComData)comData);
+                tcpQueue.Enqueue(comData);
             }
         }
 
@@ -163,6 +191,9 @@ namespace BPWorker
                 comData.acceptingWork = true;
                 comData.name = name;
                 comData.status = StatusCode.idle;
+
+                //send((ComData)comData);
+                tcpQueue.Enqueue(comData);
             }
         }
 
@@ -173,6 +204,11 @@ namespace BPWorker
                 ComDataToServer comData = new ComDataToServer();
                 comData.name = name;
                 comData.password = pass;
+                comData.acceptingWork = acceptingWork;
+                comData.status = StatusCode.processing;
+
+                //send(comData);
+                tcpQueue.Enqueue(comData);
             }
         }
     }
