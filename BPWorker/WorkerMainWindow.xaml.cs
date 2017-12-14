@@ -270,14 +270,19 @@ namespace BPWorker
         // Thread for doing the work
         private void CompleteWorkThread(object infoObj)
         {
+            comm.SendWorkAccepted();
+
             WorkParams p = (WorkParams)infoObj;
 
+            bool passFound = false;
             BreakPass bp = new BreakPass(p.lower, p.upper, p.numbers, p.symbols, p.file);
             List<string> res = bp.CrackManagedExe(comm.threads, comm.batchSize, p.batch);
             foreach (string s in res)
             {
                 comm.SendPassword(s);
+                passFound = true;
             }
+            comm.SendWorkCompleted(new string(p.batch.Item1), new string(p.batch.Item2), passFound);
         }
 
     }

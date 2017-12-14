@@ -22,7 +22,7 @@ namespace BPCoordinator
     // Class for handling a client connection
     public class NetworkClient
     {
-        public delegate void MessageReceivedDelegate(NetworkClient client, ComData comData);
+        public delegate void MessageReceivedDelegate(NetworkClient client, ComDataToServer comData);
         public delegate void ClientDisconnectedDelegate(NetworkClient client);
 
         public event MessageReceivedDelegate MessageReceived;
@@ -94,7 +94,6 @@ namespace BPCoordinator
                                 acceptingWork = comData.acceptingWork;
                                 status = comData.status;
                             }
-
                             // Handle the received data
                             MessageReceived(this, comData);
                         }
@@ -141,10 +140,12 @@ namespace BPCoordinator
         public delegate void ClientsChangedDelegate();
         public delegate void NewMessageDelegate(string msg, string name);
         public delegate void passwordFoundDelegate(string password);
+        public delegate void WorkCompleteDelegate(string start, string end, bool passFound, string clientName);
 
         public event ClientsChangedDelegate ClientsChangedEvent;
         public event NewMessageDelegate NewMessageEvent;
         public event passwordFoundDelegate PasswordFoundEvent;
+        public event WorkCompleteDelegate WorkCompleteEvent;
 
         private TcpListener listener;
         private List<NetworkClient> networkClients;
@@ -187,10 +188,10 @@ namespace BPCoordinator
         }
 
         // Process received data
-        private void ProcessClientCommand(NetworkClient client, ComData comData)
+        private void ProcessClientCommand(NetworkClient client, ComDataToServer comData)
         {
             // Handle the data
-            HandleComData((ComDataToServer)comData);
+            HandleComData(comData, client);
 
             // Adding this to catch name changes, consider finding a better way to do it, so updates does not happen as often.
             ClientsChangedEvent();
@@ -292,8 +293,15 @@ namespace BPCoordinator
         }
 
         // Handle received data
-        public void HandleComData(ComDataToServer comData)
+        public void HandleComData(ComDataToServer comData, NetworkClient client)
         {
+            // Work message
+            if (comData.isWorkMessage == true)
+            {
+                Console.WriteLine("WORK MESSAGE!!!");
+                WorkCompleteEvent(comData.workStatus.start, comData.workStatus.end, comData.workStatus.passFound, client.name);
+            }
+
             string name = "NoName";
             if (comData.name != "" && comData.name != null)
             {
@@ -311,6 +319,8 @@ namespace BPCoordinator
             {
                 PasswordFoundEvent(comData.password);
             }
+
+            
         }
 
         // Send ComData object

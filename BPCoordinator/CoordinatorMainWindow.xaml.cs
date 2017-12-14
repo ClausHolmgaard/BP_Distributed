@@ -141,6 +141,17 @@ namespace BPCoordinator
             });
         }
 
+        private void WorkComplete(string start, string end, bool passFound, string name)
+        {
+            this.Dispatcher.Invoke(() =>
+            {
+                if (chkProgress.IsChecked == true)
+                {
+                    AddLogEntry("<" + name + "> Completed: " + start + " -> " + end + "   Pass found: " + passFound);
+                }
+            });
+        }
+
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
             AddChatEntry(txtSend.Text, "Server");
@@ -169,6 +180,8 @@ namespace BPCoordinator
             listener.NewMessageEvent += AddChatEntry;
             // password found
             listener.PasswordFoundEvent += PasswordFound;
+            // work order completed
+            listener.WorkCompleteEvent += WorkComplete;
 
             // Start the listener
             listener.Run();

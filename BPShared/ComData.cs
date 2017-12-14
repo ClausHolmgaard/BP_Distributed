@@ -23,9 +23,18 @@ namespace BPShared
         errorState = -1,
     }
 
+    [Serializable]
+    public struct WorkStatus
+    {
+        public string start;
+        public string end;
+        public bool passFound;
+    }
+
     // Our com object. Must be serializable and deserializeable
     [XmlInclude(typeof(ComDataToClient))]
     [XmlInclude(typeof(ComDataToServer))]
+    [XmlInclude(typeof(WorkStatus))]
     [Serializable]
     public abstract class ComData : ISerializable, IDeserializable
     {
@@ -46,6 +55,7 @@ namespace BPShared
         public abstract void FromXML(string xml);
     }
 
+    [Serializable]
     public class ComDataToClient : ComData
     {
         // Filename and batch to try on file
@@ -85,11 +95,15 @@ namespace BPShared
         }
     }
 
+    [Serializable]
     public class ComDataToServer : ComData
     {
         public StatusCode status { get; set; }
         public bool acceptingWork { get; set; }
         public string password { get; set; }
+        public bool isWorkMessage { get; set; }
+        public WorkStatus workStatus { get; set; }
+        
 
         // Override abstract
         public override void FromXML(string xml)
@@ -105,6 +119,8 @@ namespace BPShared
                 status = tmpComData.status;
                 acceptingWork = tmpComData.acceptingWork;
                 password = tmpComData.password;
+                isWorkMessage = tmpComData.isWorkMessage;
+                workStatus = tmpComData.workStatus;
             }
             catch (InvalidOperationException)
             {

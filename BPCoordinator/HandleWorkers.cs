@@ -40,8 +40,6 @@ namespace BPCoordinator
         // working
         public bool doWork { get; private set; }
 
-        List<string> passwordsFound;
-
         Thread workThread;
 
         // Params for starting split thread
@@ -186,7 +184,7 @@ namespace BPCoordinator
                     Thread.Sleep(1000);
                     continue;
                 }
-                foreach(NetworkClient c in clients)
+                foreach(NetworkClient c in clients.ToList())
                 {
                     // Send work to client, if it's accepting
                     if(c.acceptingWork && c.status == StatusCode.idle)

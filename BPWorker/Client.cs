@@ -195,7 +195,7 @@ namespace BPWorker
         }
 
         // Send a message that work has been completed
-        public void SendWorkCompleted()
+        public void SendWorkCompleted(string start, string end, bool passFound)
         {
             if (isConnected)
             {
@@ -204,8 +204,16 @@ namespace BPWorker
                 comData.acceptingWork = acceptingWork;
                 comData.name = name;
                 comData.status = status;
+                comData.isWorkMessage = true;
 
-                //send((ComData)comData);
+                WorkStatus w = new WorkStatus();
+                w.start = start;
+                w.end = end;
+                w.passFound = passFound;
+                
+
+                comData.workStatus = w;
+
                 tcpQueue.Enqueue(comData);
             }
         }
