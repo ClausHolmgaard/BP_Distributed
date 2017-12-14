@@ -41,6 +41,9 @@ namespace BPShared
         public string message { get; set; }
         public string name { get; set; }
 
+        protected int[] key = { 100, 500, 32 };
+        protected int[] salt = { 32, 34, 54, 12 };
+
         // Convert to XML string
         public string GetXML()
         {
@@ -48,7 +51,76 @@ namespace BPShared
             StringWriter sWriter = new StringWriter();
             serializer.Serialize(sWriter, this);
 
-            return sWriter.ToString().Replace(Environment.NewLine, "");
+            string clearText = sWriter.ToString().Replace(Environment.NewLine, "");
+
+            return encrypt(clearText, key, salt);
+            //return sWriter.ToString().Replace(Environment.NewLine, "");
+        }
+
+        protected string encrypt(string clear, int[] key, int[] salt)
+        {
+            int index = 0;
+            string encryptedString = "";
+            char[] valids = Helpers.getValidEncryptChars();
+
+            foreach (char c in clear)
+            {
+                if (Array.IndexOf(valids, c) > -1) {
+                    int intKey = key[index % key.Length];
+                    int intSalt = salt[index % salt.Length];
+                    int moveKey = intKey + intSalt;
+                    index++;
+
+                    int newKey = Array.IndexOf(valids, c) + moveKey;
+                    char newChar = valids[newKey % valids.Length];
+                    
+                    encryptedString += newChar.ToString();
+                }
+                else
+                {
+                    encryptedString += c.ToString();
+                }
+            }
+
+            return encryptedString;
+        }
+
+        protected string decrypt(string cipher, int[] key, int[] salt)
+        {
+            string clearString = "";
+            char[] valids = Helpers.getValidEncryptChars();
+
+            int index = 0;
+            foreach(char c in cipher)
+            {
+                if (Array.IndexOf(valids, c) > -1) {
+                    int intKey = key[index % key.Length];
+                    int intSalt = salt[index % salt.Length];
+                    int moveKey = intKey + intSalt;
+                    index++;
+                    moveKey = moveKey % valids.Length;
+
+                    int newKey = Array.IndexOf(valids, c) - moveKey;
+
+                    char newChar;
+                    if(newKey >= 0)
+                    {
+                        newChar = valids[newKey % valids.Length];
+                    }
+                    else
+                    {
+                        newChar = valids[valids.Length - Math.Abs(newKey)];
+                    }
+
+                    clearString += newChar.ToString();
+                }
+                else
+                {
+                    clearString += c.ToString();
+                }
+            }
+
+            return clearString;
         }
 
         // Must implement a method to get object from XML string
@@ -70,12 +142,13 @@ namespace BPShared
         // Override abstract
         public override void FromXML(string xml)
         {
+            string clearXml = decrypt(xml, key, salt);
             XmlSerializer serializer = new XmlSerializer(typeof(ComData));
             ComData comData = new ComDataToClient();
             
             try
             {
-                StringReader sReader = new StringReader(xml);
+                StringReader sReader = new StringReader(clearXml);
                 ComDataToClient tmpComData = (ComDataToClient)serializer.Deserialize(sReader);
                 message = tmpComData.message;
                 name = tmpComData.name;
@@ -108,9 +181,10 @@ namespace BPShared
         // Override abstract
         public override void FromXML(string xml)
         {
+            string clearXml = decrypt(xml, key, salt);
             XmlSerializer serializer = new XmlSerializer(typeof(ComData));
             ComData comData = new ComDataToClient();
-            StringReader sReader = new StringReader(xml);
+            StringReader sReader = new StringReader(clearXml);
             try
             {
                 ComDataToServer tmpComData = (ComDataToServer)serializer.Deserialize(sReader);
