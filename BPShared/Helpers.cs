@@ -5,6 +5,7 @@ using System.Net.Sockets;
 
 namespace BPShared
 {
+    // general helper methods
     public static class Helpers
     {
         /* Modified from

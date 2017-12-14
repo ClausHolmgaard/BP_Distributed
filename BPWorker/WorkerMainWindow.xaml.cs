@@ -24,19 +24,18 @@ namespace BPWorker
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
-    {
-        Client comm;
-        ComDataToServer comData;
+    { 
+        Client comm;                // Communication
+        ComDataToServer comData;    // Communication data structure
         Thread doWork;
 
         public MainWindow()
         {
             InitializeComponent();
 
-            //hlp = new Helpers();
             comm = new Client();
-            comm.ComDataReceivedEvent += DataReceived;
-            comm.ConnectionChangedEvent += UpdateUI;
+            comm.ComDataReceivedEvent += DataReceived;  // New data received
+            comm.ConnectionChangedEvent += UpdateUI;    // Update the UI
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -59,6 +58,7 @@ namespace BPWorker
 
         private void btnSend_Click(object sender, RoutedEventArgs e)
         {
+            // Send chat data
             UpdateComm();
             if (txtSend.Text != "")
             {
@@ -110,9 +110,11 @@ namespace BPWorker
 
         private void Check_Click()
         {
+            // Get settings
             bool threadsSucces = Int32.TryParse(txtThreads.Text, out int threads);
             bool batchSuccess = Int32.TryParse(txtBatchSize.Text, out int batchSize);
 
+            // Validate settings
             if(!threadsSucces)
             {
                 MessageBox.Show("Threads must be a valid integer");
@@ -125,6 +127,8 @@ namespace BPWorker
             }
 
             UpdateComm();
+
+            // save settings
             comm.threads = threads;
             comm.batchSize = batchSize;
         }
@@ -139,6 +143,7 @@ namespace BPWorker
             Check_Click();
         }
 
+        // Add entry in log
         private void AddLog(string msg)
         {
             ListBoxItem itm = new ListBoxItem();
@@ -146,6 +151,7 @@ namespace BPWorker
             lstLog.Items.Add(itm);
         }
 
+        // Add entry in log from other thread
         private void AddLogEntry(string msg)
         {
             // Much pretty, very work...
@@ -155,12 +161,14 @@ namespace BPWorker
                 }));
         }
 
+        // Update communication data
         private void UpdateComm()
         {
             comm.acceptingWork = chkAcceptWork.IsChecked == true;
             comm.name = txtName.Text;
         }
 
+        // Update the UI
         private void UpdateUI()
         {
             if (comm.isConnected)
@@ -185,6 +193,7 @@ namespace BPWorker
             }
         }
 
+        // Connect
         private void connect()
         {
             bool portSuccess = Int32.TryParse(txtPort.Text, out int port);
@@ -195,7 +204,6 @@ namespace BPWorker
             }
 
             comm.connect(txtIp.Text, port);
-            
         }
 
         private void disconnect()
@@ -208,6 +216,7 @@ namespace BPWorker
             AddLogEntry(msg);
         }
 
+        // Handle received data
         private void DataReceived(ComData comData)
         {
             ComDataToClient c = (ComDataToClient)comData;
@@ -229,7 +238,8 @@ namespace BPWorker
                 Console.WriteLine("RESULT: " + s);
             }
         }
-        
+
+        // Parameters for worker thread
         private class WorkParams
         {
             public string file;
@@ -240,6 +250,7 @@ namespace BPWorker
             public bool symbols;
         }
 
+        // Reveiced work
         private void GotWork(string file, string start, string end, bool lower, bool upper, bool numbers, bool symbols)
         {
             Tuple<char[], char[]> b = new Tuple<char[], char[]>(start.ToCharArray(), end.ToCharArray());
@@ -256,6 +267,7 @@ namespace BPWorker
             doWork.Start(wp);
         }
 
+        // Thread for doing the work
         private void CompleteWorkThread(object infoObj)
         {
             WorkParams p = (WorkParams)infoObj;

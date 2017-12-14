@@ -25,7 +25,7 @@ namespace BPWorker
         private int workers;
         private Tuple<char[], char[]> aBatch;
 
-
+        // Constructor
         public Work(string filename, bool lower, bool upper, bool numbers, bool symbols, int batchSize, int workerThreads, Tuple<char[], char[]> batch)
         {
             file = filename;
@@ -38,12 +38,14 @@ namespace BPWorker
             aBatch = batch;
         }
 
+        // Start working
         public void StartWork()
         {
             worker = new Thread(DoWork);
             worker.Start();
         }
 
+        // worker thread
         private void DoWork()
         {
             BreakPass bp = new BreakPass(true, false, false, false, file, false);

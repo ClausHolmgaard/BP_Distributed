@@ -23,6 +23,7 @@ namespace BPShared
         errorState = -1,
     }
 
+    // Our com object. Must be serializable and deserializeable
     [XmlInclude(typeof(ComDataToClient))]
     [XmlInclude(typeof(ComDataToServer))]
     [Serializable]
@@ -31,6 +32,7 @@ namespace BPShared
         public string message { get; set; }
         public string name { get; set; }
 
+        // Convert to XML string
         public string GetXML()
         {
             XmlSerializer serializer = new XmlSerializer(typeof(ComData));
@@ -40,6 +42,7 @@ namespace BPShared
             return sWriter.ToString().Replace(Environment.NewLine, "");
         }
 
+        // Must implement a method to get object from XML string
         public abstract void FromXML(string xml);
     }
 
@@ -54,6 +57,7 @@ namespace BPShared
         public bool symbols { get; set; }
         public bool numbers { get; set; }
 
+        // Override abstract
         public override void FromXML(string xml)
         {
             XmlSerializer serializer = new XmlSerializer(typeof(ComData));
@@ -87,6 +91,7 @@ namespace BPShared
         public bool acceptingWork { get; set; }
         public string password { get; set; }
 
+        // Override abstract
         public override void FromXML(string xml)
         {
             XmlSerializer serializer = new XmlSerializer(typeof(ComData));

@@ -30,17 +30,21 @@ namespace BPCoordinator
         private bool numberChars;
         private bool symbolChars;
 
+        // Lists are not thread safe, these are. Non ordered.
         private ConcurrentBag<Tuple<char[], char[]>> batchesNotProcessed;
         private ConcurrentBag<Tuple<char[], char[]>> batchesProcessed;
         private ConcurrentBag<Tuple<char[], char[]>> bathcesProcessing;
 
+        // Ready to handle work
         public bool isReady { get; private set; }
+        // working
         public bool doWork { get; private set; }
 
         List<string> passwordsFound;
 
         Thread workThread;
 
+        // Params for starting split thread
         private class ThreadParams
         {
             public int min;
@@ -48,6 +52,7 @@ namespace BPCoordinator
             public int batchSize;
         }
 
+        // constructor, will start worker handling
         public HandleWorkers(int min, int max, int batchSize, string fileName, bool lower, bool upper, bool numbers, bool symbols)
         {
             isReady = false;
@@ -81,11 +86,11 @@ namespace BPCoordinator
             splitThread.Start(p);
 
             doWork = true;
-            //workThread = new Thread(DoWorkThread);
             workThread = new Thread(new ParameterizedThreadStart(DoWorkThread));
             workThread.Start(fileName);
         }
 
+        // return batches not yet processed as a list
         public List<Tuple<char[], char[]>> GetBatchesNotProcessed()
         {
             List<Tuple<char[], char[]>> b = new List<Tuple<char[], char[]>>();
@@ -97,36 +102,38 @@ namespace BPCoordinator
             return b;
         }
 
+        // return batches processed as a list
         public List<Tuple<char[], char[]>> GetBatchesProcessed()
         {
             List<Tuple<char[], char[]>> b = new List<Tuple<char[], char[]>>();
             foreach (Tuple<char[], char[]> t in batchesProcessed)
             {
                 b.Add(t);
-
             }
 
             return b;
         }
 
+        // return batches processing as a list
         public List<Tuple<char[], char[]>> GetBatchesProcessing()
         {
             List<Tuple<char[], char[]>> b = new List<Tuple<char[], char[]>>();
             foreach (Tuple<char[], char[]> t in bathcesProcessing)
             {
                 b.Add(t);
-
             }
 
             return b;
         }
 
+        // Stop handling workers
         public void StopWork()
         {
             doWork = false;
             workThread.Join();
         }
 
+        // Get batches to process
         private void SplitBatchThread(object infoObj)
         {
             ThreadParams p = (ThreadParams)infoObj;
@@ -157,6 +164,7 @@ namespace BPCoordinator
             BatchUpdate();
         }
 
+        // Thread wjere worker handling happens
         private void DoWorkThread(object infoObj)
         {
             List<NetworkClient> clients;
@@ -180,8 +188,8 @@ namespace BPCoordinator
                 }
                 foreach(NetworkClient c in clients)
                 {
-                    //Console.WriteLine("Client: " + c.Id + " accepting work: " + c.acceptingWork);
-                    if(c.acceptingWork)
+                    // Send work to client, if it's accepting
+                    if(c.acceptingWork && c.status == StatusCode.idle)
                     {
                         Tuple<char[], char[]> tmpBatch;
                         if (batchesNotProcessed.TryTake(out tmpBatch))

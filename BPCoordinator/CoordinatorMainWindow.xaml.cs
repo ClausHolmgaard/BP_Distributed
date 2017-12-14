@@ -22,8 +22,10 @@ namespace BPCoordinator
     /// </summary>
     public partial class MainWindow : Window
     {
+        // Communications object
         private Listener listener;
-        HandleWorkers hw;
+        // Handling of workers
+        private HandleWorkers hw;
 
         public MainWindow()
         {
@@ -32,11 +34,13 @@ namespace BPCoordinator
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            // Add ip's to dropdown
             AddIps();
 
             btnListen.Focus();
         }
 
+        // Add clients to list box
         private void UpdateClients()
         {
             List<NetworkClient> networkClients = listener.GetClients();
@@ -56,6 +60,8 @@ namespace BPCoordinator
                 clientInfo += " - ID: " + client.Id;
                 ListBoxItem itm = new ListBoxItem();
                 itm.Content = clientInfo;
+
+                // Change color depending on acceptance of work
                 if (client.acceptingWork)
                 {
                     itm.Background = Brushes.Green;
@@ -69,6 +75,7 @@ namespace BPCoordinator
             }
         }
 
+        // interface method for worker handler to get clients
         private List<NetworkClient> ClientsForWorkerHandling()
         {
             if (listener != null)
@@ -78,6 +85,7 @@ namespace BPCoordinator
             return null;
         }
 
+        // Add ip's to dropdown menu
         private void AddIps()
         {
             ComboBoxItem cmbAll = new ComboBoxItem();
@@ -95,6 +103,7 @@ namespace BPCoordinator
             cmbIp.SelectedIndex = 0;
         }
 
+        // Add an antry to the log
         private void AddLogEntry(string msg)
         {
             ListBoxItem itm = new ListBoxItem();
@@ -102,6 +111,7 @@ namespace BPCoordinator
             lstLog.Items.Add(itm);
         }
 
+        // Add a chat entry, and echo it to the clients
         private void AddChatEntry(string message, string name)
         {
             if (message != "" && message != null)
@@ -114,11 +124,14 @@ namespace BPCoordinator
             cd.message = message;
             cd.name = name;
 
+            // Echo...
             listener.Send(cd);
         }
 
+        // Called when a password is found
         private void PasswordFound(string pass)
         {
+            // Call from another thread
             this.Dispatcher.Invoke(() =>
             {
                 ListBoxItem itm = new ListBoxItem();
@@ -154,11 +167,14 @@ namespace BPCoordinator
 
             // Echo messages to clients
             listener.NewMessageEvent += AddChatEntry;
+            // password found
             listener.PasswordFoundEvent += PasswordFound;
 
+            // Start the listener
             listener.Run();
         }
 
+        // Send only to selected
         private void btnSendToSelected_Click(object sender, RoutedEventArgs e)
         {
             foreach(ListBoxItem item in lstClients.SelectedItems)
@@ -182,8 +198,10 @@ namespace BPCoordinator
             string selected = lstClients.SelectedItems.ToString();
         }
 
+        // Start processing data
         private void btnProcess_Click(object sender, RoutedEventArgs e)
         {
+            // Get settings
             bool lower = chkLowerCase.IsChecked == true;
             bool upper = chkUpperCase.IsChecked == true;
             bool numbers = chkNumbers.IsChecked == true;
@@ -192,6 +210,7 @@ namespace BPCoordinator
             bool maxSuccess = Int32.TryParse(txtMaxLength.Text, out int maxLength);
             bool batchSuccess = Int32.TryParse(txtBatchSize.Text, out int batchSize);
 
+            // validate settings
             if(!minSuccess || !maxSuccess)
             {
                 MessageBox.Show("Both min and max length must be valid integers.");
@@ -209,13 +228,15 @@ namespace BPCoordinator
             }
 
             hw = new HandleWorkers(minLength, maxLength, batchSize, txtFilename.Text, lower, upper, numbers, symbols);
-            hw.BatchUpdate += BatchUpdate;
-            hw.GetClients += ClientsForWorkerHandling;
-            hw.SendClientWork += listener.SendWorkOrder;
+            hw.BatchUpdate += BatchUpdate;                  // update list of batches
+            hw.GetClients += ClientsForWorkerHandling;      // Get clients for worker handling
+            hw.SendClientWork += listener.SendWorkOrder;    // Send work order to client
         }
 
+        // Update lists of batches
         private void BatchUpdate()
         {
+            // Called from another thread
             this.Dispatcher.Invoke(() =>
             {
                 lstBatches.Items.Clear();

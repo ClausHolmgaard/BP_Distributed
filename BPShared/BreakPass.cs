@@ -11,12 +11,13 @@ using System.Threading;
 
 namespace BPShared
 { 
-
+    // Functionality for breaking of passwords
     public class BreakPass
     {
         private delegate bool CheckPassMethod(char[] pass);
         private CheckPassMethod CheckPass;
 
+        // Arrays for construction of valid chars list
         public static char[] lowerCaseChars = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'æ', 'ø', 'å' };
         public static char[] upperCaseChars = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Æ', 'Ø', 'Å' };
         public static char[] numberChars = { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
@@ -29,16 +30,17 @@ namespace BPShared
 
         private string checkFile;
 
-        //int min;
-        //int max;
+        // End and start arrays for where to look for passwords
         char[] end;
         char[] start;
 
-        //private List<Tuple<char[], char[]>> batches;
+        // Thread safe unordered list
         private ConcurrentBag<Tuple<char[], char[]>> batches;
+
         AppDomain thisDomain = AppDomain.CurrentDomain;
         Assembly checkFileAssembly;
 
+        // Constructor
         public BreakPass(bool lower, bool upper, bool numbers, bool symbols, string file, bool continueAfterOneFound=false)
         {
             checkFile = file;
@@ -53,12 +55,10 @@ namespace BPShared
             if (symbols)
                 validChars.AddRange(symbolChars);
 
-            //min = minLength;
-            //max = maxLength;
-
             findAll = continueAfterOneFound;
         }
 
+        // Crack any exe
         public List<string> CrackAnyExe(int workers, int batchSize, Tuple<char[], char[]> batch)
         {
             start = batch.Item1;
@@ -68,6 +68,7 @@ namespace BPShared
             return results;
         }
 
+        // Crack .net managed exe
         public List<string> CrackManagedExe(int workers, int batchSize, Tuple<char[], char[]> batch)
         {
             start = batch.Item1;
@@ -78,6 +79,7 @@ namespace BPShared
             return results;
         }
 
+        // crack zip NYI
         public List<string> CrackZip(int workers, int batchSize, Tuple<char[], char[]> batch)
         {
             start = batch.Item1;
@@ -87,18 +89,20 @@ namespace BPShared
             return results;
         }
 
+        // Initialize cracking
         public void Run(int workers, int batchSize)
         {
             results = new List<string>();
 
+            // Get bathces, and add to thread safe list
             List<Tuple<char[], char[]>>  b = Split(batchSize, start, end, validChars);
             batches = new ConcurrentBag<Tuple<char[], char[]>>();
-
             foreach(var item in b)
             {
                 batches.Add(item);
             }
 
+            // Start worker threads
             Console.WriteLine("Starting " + workers + " workers");
             Thread[] threads = new Thread[workers];
             for (int i = 0; i < workers; i++)
@@ -109,6 +113,7 @@ namespace BPShared
                 threads[i].Start(i);
             }
 
+            // Wait for all threads to complete
             foreach (Thread t in threads)
             {
                 t.Join();
@@ -116,30 +121,35 @@ namespace BPShared
 
         }
 
+        // Split into batches
         public static List<Tuple<char[], char[]>> Split(int batchSize, char[] s, char[] e, List<char> valid)
         {
-            //batches = new ConcurrentBag<Tuple<char[], char[]>>();
             List<Tuple<char[], char[]>> batches = new List<Tuple<char[], char[]>>();
 
+            // Loop through all lengths
             for (int i = s.Length; i <= e.Length; i++)
             {
                 char[] startPass = new char[i];
                 char[] endPass;
 
+                // Get batch size as char in same base as validChar array
                 char[] charBatchSize = IntToValidChar(batchSize, i, valid);
 
+                // I at start of first
                 if (i == s.Length)
                 {
                     startPass = s;
                 }
                 else
                 {
+                    // Else initialize to lowers array
                     for (int n = 0; n < startPass.Length; n++)
                     {
                         startPass[n] = valid.First();
                     }
                 }
 
+                // If bactchSize is greater than length, add all of that length
                 if (charBatchSize.Length > i)
                 {
                     endPass = new char[i];
@@ -154,11 +164,12 @@ namespace BPShared
                 }
 
                 bool done = false;
-
                 while (!done)
                 {
+                    // Add batchsize char and previous pass.
                     endPass = AddValidChars(startPass, charBatchSize, valid);
 
+                    // If batchsize is greater than amount left for length
                     if (ValidCharToInt(endPass, valid) > ValidCharToInt(e, valid))
                     {
                         endPass = e;
@@ -190,6 +201,7 @@ namespace BPShared
             return batches;
         }
 
+        // Convert char to int depending on base of valid chars
         private static UInt64 ValidCharToInt(char[] vchar, List<char> valid)
         {
             UInt64 sum = 0;
@@ -202,6 +214,8 @@ namespace BPShared
             return sum;
         }
 
+        // Add two char arrays
+        // This is done by interpreting char arrays as integers in the base of valid chars length
         private static char[] AddValidChars(char[] vchar1, char[] vchar2, List<char> valid)
         {
             // If resulting array is long, just return max result. i.e. {'x', 'x'} + {'x', 'x'} = {'å', 'å'}  (for lower case only)
@@ -213,10 +227,13 @@ namespace BPShared
 
             char[] outChar = new char[vchar1.Length];
 
+            // using unsighedn 64 bit integers as sizes can get large.
+            // Keep an eye on this, larger should not be needed though
             UInt64 vchar1Sum = 0;
             UInt64 vchar2Sum = 0;
             UInt64 maxSum = 0;
 
+            // Check sum isnt oob
             for (int i = 0; i < vchar1.Length; i++)
             {
                 vchar1Sum += (UInt64)valid.IndexOf(vchar1[i]) * (UInt64)Math.Pow(valid.Count, vchar1.Length - i - 1);
@@ -233,6 +250,7 @@ namespace BPShared
                 return outChar;
             }
 
+            // Calculate sum
             int remainder = 0;
             for (int i = vchar1.Length - 1; i >= 0; i--)
             {
@@ -251,6 +269,7 @@ namespace BPShared
             return outChar;
         }
 
+        // Convert int to char using valid char length as base
         private static char[] IntToValidChar(int anInt, int padAmount, List<char> valid)
         {
             int len = 1;
@@ -270,6 +289,7 @@ namespace BPShared
                 padAmount = len;
             }
 
+            // Pad with zeros (or equivalent from validChar)
             for (int i = 0; i < outChar.Length; i++)
             {
                 outChar[i] = valid.First();
@@ -286,6 +306,7 @@ namespace BPShared
             return outChar;
         }
 
+        // Get next pass to check
         private char[] GetNext(char[] pass)
         {
             for (int i = pass.Length - 1; i >= 0; i--)
@@ -301,7 +322,7 @@ namespace BPShared
                     {
                         if (pass[n] != validChars.Last())
                         {
-                            pass[n] = validChars[validChars.IndexOf(pass[n]) + 1];  //(char)(pass[n] + 1);
+                            pass[n] = validChars[validChars.IndexOf(pass[n]) + 1];
                             for (int nn = n + 1; nn < pass.Length; nn++)
                             {
                                 pass[nn] = validChars.First();
@@ -315,6 +336,7 @@ namespace BPShared
             return pass;
         }
 
+        // Get next batch
         private char[] GetNextBatch(char[] start, int amount)
         {
             char[] end = new char[start.Length];
@@ -346,6 +368,7 @@ namespace BPShared
 
         }
 
+        // Process a batch of passwords
         private void processBatch(object infoObj)
         {
             bool isDone = false;
@@ -375,10 +398,9 @@ namespace BPShared
             {
                 return null;
             }
-
-
         }
 
+        // Test passwords from char arrays start to end
         private void TrySome(char[] start, char[] end, string worker)
         {
             UInt64 passChecked = 0;
@@ -402,7 +424,6 @@ namespace BPShared
 
                 while (results.Count == 0 || findAll)
                 {
-                    //Console.WriteLine(testPass);
                     passChecked++;
                     bool success = CheckPass(testPass);
                     if (success)
@@ -502,8 +523,7 @@ namespace BPShared
 
         private bool CheckAgainstZip(char[] pass)
         {
-
-            return false;
+            throw new NotImplementedException("Zip cracking not implemented.");
         }
     }
 }

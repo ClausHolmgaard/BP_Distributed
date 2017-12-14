@@ -25,6 +25,7 @@ namespace BPWorker
         private string ip;
         private int port;
         public bool acceptingWork { get; set; }
+        public StatusCode status { get; set; }
         public string name { get; set; }
         public int threads { get; set; }
         public int batchSize { get; set; }
@@ -34,8 +35,10 @@ namespace BPWorker
         Thread sendThread;
         Thread keepAliveThread;
 
+        // Thread safe queue for sending tcp messages
         ConcurrentQueue<ComDataToServer> tcpQueue;
 
+        // Connect to a server
         public void connect(string remoteIp, int remotePort)
         {
             tcpCon = new TcpClient();
@@ -46,6 +49,7 @@ namespace BPWorker
 
             Console.WriteLine("Worker: Connecting to " + ip + ":" + port);
 
+            // connect
             try
             {
                 if (!tcpCon.Connected)
@@ -67,19 +71,24 @@ namespace BPWorker
 
             isConnected = true;
 
+            // Thread for listening for messages
             listenThread = new Thread(listen);
             listenThread.SetApartmentState(ApartmentState.STA);
             listenThread.Start();
 
+            // Thread for sending messages
             sendThread = new Thread(Send);
             sendThread.Start();
 
+            // Thread for sending keepalives...
             keepAliveThread = new Thread(KeepAlive);
             keepAliveThread.Start();
 
+            // Notify about change in connection
             ConnectionChangedEvent();
         }
 
+        // Stop communication
         public void stop()
         {
             if (tcpCon != null)
@@ -92,6 +101,7 @@ namespace BPWorker
             ConnectionChangedEvent();
         }
 
+        // Listen for messages
         private void listen()
         {
             while (isConnected)
@@ -115,13 +125,14 @@ namespace BPWorker
                 ComDataToClient comData = new ComDataToClient();
                 comData.FromXML(read);
 
+                // Handle new message
                 ComDataReceivedEvent(comData);
-                
             }
 
             ConnectionChangedEvent();
         }
 
+        // Thread for sending message from queue list
         public void Send()
         {
             while (isConnected)
@@ -145,11 +156,13 @@ namespace BPWorker
             }
         }
 
+        // Add a message to the queue
         public void send(ComDataToServer comData)
         {
             tcpQueue.Enqueue(comData);
         } 
 
+        // Thread for sending keepalives
         private void KeepAlive()
         {
             while (isConnected)
@@ -157,46 +170,47 @@ namespace BPWorker
                 ComDataToServer comData = new ComDataToServer();
                 comData.acceptingWork = acceptingWork;
                 comData.name = name;
-                comData.status = StatusCode.idle;
+                comData.status = status;
 
                 Console.WriteLine("Worker: Sending keepalive");
-                //send(comData);
                 tcpQueue.Enqueue(comData);
 
                 Thread.Sleep(1000);
             }
         }
 
+        // Send a message that work has been accepted
         public void SendWorkAccepted()
         {
             if(isConnected)
             {
-                acceptingWork = false;
+                status = StatusCode.processing;
                 ComDataToServer comData = new ComDataToServer();
-                comData.acceptingWork = false;
+                comData.acceptingWork = acceptingWork;
                 comData.name = name;
                 comData.status = StatusCode.processing;
 
-                //send((ComData)comData);
                 tcpQueue.Enqueue(comData);
             }
         }
 
+        // Send a message that work has been completed
         public void SendWorkCompleted()
         {
             if (isConnected)
             {
-                acceptingWork = true;
+                status = StatusCode.idle;
                 ComDataToServer comData = new ComDataToServer();
-                comData.acceptingWork = true;
+                comData.acceptingWork = acceptingWork;
                 comData.name = name;
-                comData.status = StatusCode.idle;
+                comData.status = status;
 
                 //send((ComData)comData);
                 tcpQueue.Enqueue(comData);
             }
         }
 
+        // Send a message that a password has been found
         public void SendPassword(string pass)
         {
             if (isConnected)
@@ -205,9 +219,8 @@ namespace BPWorker
                 comData.name = name;
                 comData.password = pass;
                 comData.acceptingWork = acceptingWork;
-                comData.status = StatusCode.processing;
+                comData.status = status;
 
-                //send(comData);
                 tcpQueue.Enqueue(comData);
             }
         }

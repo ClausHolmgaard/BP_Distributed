@@ -19,6 +19,7 @@ namespace BPCoordinator
     https://scatteredcode.wordpress.com/2013/04/29/creating-a-single-threaded-multi-user-tcp-server-in-net/
     */
 
+    // Class for handling a client connection
     public class NetworkClient
     {
         public delegate void MessageReceivedDelegate(NetworkClient client, ComData comData);
@@ -35,20 +36,24 @@ namespace BPCoordinator
         public int Id;
         public string name;
         public bool acceptingWork { get; set; }
+        public StatusCode status { get; set; }
         public TcpClient Socket;
 
+        // constructor
         public NetworkClient(TcpClient clientSocket, int clientId)
         {
             socket = clientSocket;
             id = clientId;
         }
 
+        // Client needs to be disconnected
         private void MarkAsDisconnected()
         {
             IsActive = false;
             ClientDisconnected(this);
         }
 
+        // Input received
         public async Task ReceiveInput()
         {
             IsActive = true;
@@ -70,6 +75,7 @@ namespace BPCoordinator
                             return;
                         }
 
+                        // We've got a message
                         if (MessageReceived != null)
                         {
                             Console.WriteLine("Server: Received: " + content);
@@ -84,9 +90,12 @@ namespace BPCoordinator
                                     name = comData.name;
                                 }
 
+                                // Save accepting work status
                                 acceptingWork = comData.acceptingWork;
+                                status = comData.status;
                             }
 
+                            // Handle the received data
                             MessageReceived(this, comData);
                         }
                     }
@@ -102,14 +111,18 @@ namespace BPCoordinator
             }
         }
 
+        // Send a ComData object
         public async Task SendLine(ComData comData)
         {
+            // Only if active
             if (!IsActive)
                 return;
 
+            // Send the data
             try
             {
                 var writer = new StreamWriter(networkStream);
+                // Send the xml string
                 await writer.WriteLineAsync(comData.GetXML());
                 writer.Flush();
             }
@@ -122,15 +135,14 @@ namespace BPCoordinator
         }
     }
 
+    // Handling server communication
     public class Listener
     {
         public delegate void ClientsChangedDelegate();
-        //public delegate void ComDataReceviedDelegate(ComData cmData);
         public delegate void NewMessageDelegate(string msg, string name);
         public delegate void passwordFoundDelegate(string password);
 
         public event ClientsChangedDelegate ClientsChangedEvent;
-        //public event ComDataReceviedDelegate ComDataReceivedEvent;
         public event NewMessageDelegate NewMessageEvent;
         public event passwordFoundDelegate PasswordFoundEvent;
 
@@ -147,6 +159,7 @@ namespace BPCoordinator
             get { return clientListenTask.Exception; }
         }
 
+        // Constructor
         public Listener(string ip, int port, Action<string> log)
         {
             IPAddress ipAd;
@@ -163,28 +176,29 @@ namespace BPCoordinator
             networkClients = new List<NetworkClient>();
             networkClientReceiveInputTasks = new List<KeyValuePair<Task, NetworkClient>>();
 
-            //ComDataReceivedEvent += HandleComData;
-
+            // Log for printing status in UI
             AddLog = log;
         }
 
+        // Return all clients
         public List<NetworkClient> GetClients()
         {
             return networkClients;
         }
 
+        // Process received data
         private void ProcessClientCommand(NetworkClient client, ComData comData)
         {
-            //ComDataReceivedEvent(comData);
+            // Handle the data
             HandleComData((ComDataToServer)comData);
 
             // Adding this to catch name changes, consider finding a better way to do it, so updates does not happen as often.
             ClientsChangedEvent();
         }
 
+        // Handle client disconnects
         private void ClientDisconnected(NetworkClient client)
-        {
-            
+        { 
             client.IsActive = false;
             
             if (networkClients.Contains(client))
@@ -197,11 +211,12 @@ namespace BPCoordinator
             ClientsChangedEvent();
         }
 
+        // A client connected
         private void ClientConnected(TcpClient client, int clientNumber)
         {
             var netClient = new NetworkClient(client, clientNumber);
-            netClient.MessageReceived += ProcessClientCommand;
-            netClient.ClientDisconnected += ClientDisconnected;
+            netClient.MessageReceived += ProcessClientCommand;  // Handle messages received
+            netClient.ClientDisconnected += ClientDisconnected; // Handle client disconnects
             netClient.Id = clientNumber;
 
             // Save the Resulting task from ReceiveInput as a Task so we can check for any unhandled exceptions that may have occured
@@ -211,9 +226,12 @@ namespace BPCoordinator
             networkClients.Add(netClient);
             Console.WriteLine("Client " + clientNumber + " Connected");
             Console.WriteLine("Server: Client connected.");
+
+            // Update the UI
             ClientsChangedEvent();
         }
 
+        // Listen for new connections
         private async Task ListenForClients()
         {
             var numClients = 0;
@@ -222,6 +240,7 @@ namespace BPCoordinator
             while (IsRunning)
             {
                 var tcpClient = await listener.AcceptTcpClientAsync();
+                // New client connected
                 ClientConnected(tcpClient, numClients);
                 numClients++;
             }
@@ -230,11 +249,13 @@ namespace BPCoordinator
             listener.Stop();
         }
 
+        // Return running state
         public bool getRunning()
         {
             return IsRunning;
         }
 
+        // Start listening
         public void Run()
         {
             try
@@ -250,6 +271,7 @@ namespace BPCoordinator
             clientListenTask = ListenForClients();
         }
 
+        // Get a clients name from the ID
         public string GetNameFromID(int id)
         {
             foreach(NetworkClient netClient in networkClients)
@@ -269,6 +291,7 @@ namespace BPCoordinator
             return null;
         }
 
+        // Handle received data
         public void HandleComData(ComDataToServer comData)
         {
             string name = "NoName";
@@ -277,17 +300,20 @@ namespace BPCoordinator
                 name = comData.name;
             }
 
+            // Chat messages
             if (comData.message != "" && comData.message != null)
             {
                 NewMessageEvent(comData.message, name);
             }
 
+            // Password message
             if(comData.password != "" && comData.password != null)
             {
                 PasswordFoundEvent(comData.password);
             }
         }
 
+        // Send ComData object
         public async void Send(ComData comData, int id=-1)
         {
             foreach (NetworkClient netClient in networkClients)
@@ -311,11 +337,11 @@ namespace BPCoordinator
             }
         }
 
+        // Send workorder to a client
         public void SendWorkOrder(int clientId, string file, char[] start, char[] end, bool lower, bool upper, bool numbers, bool symbols)
         {
             ComDataToClient comData = new ComDataToClient();
             comData.message = "";
-            Console.WriteLine("WORKORDER FOR FILE: " + file);
             comData.filename = file;
             comData.start = new string(start);
             comData.end = new string(end);
