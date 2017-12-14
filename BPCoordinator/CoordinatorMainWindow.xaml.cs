@@ -109,6 +109,8 @@ namespace BPCoordinator
             ListBoxItem itm = new ListBoxItem();
             itm.Content = msg;
             lstLog.Items.Add(itm);
+            lstLog.SelectedIndex = lstLog.Items.Count - 1;
+            lstLog.ScrollIntoView(lstLog.SelectedItem);
         }
 
         // Add a chat entry, and echo it to the clients
@@ -131,6 +133,10 @@ namespace BPCoordinator
         // Called when a password is found
         private void PasswordFound(string pass)
         {
+            if(chkStopOnFound.IsChecked == true)
+            {
+                hw.StopWork();
+            }
             // Call from another thread
             this.Dispatcher.Invoke(() =>
             {
@@ -148,6 +154,7 @@ namespace BPCoordinator
                 if (chkProgress.IsChecked == true)
                 {
                     AddLogEntry("<" + name + "> Completed: " + start + " -> " + end + "   Pass found: " + passFound);
+                    lblBatchesRemaining.Content = hw.GetBatchesNotProcessed().Count();
                 }
             });
         }

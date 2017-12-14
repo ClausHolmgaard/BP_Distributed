@@ -27,13 +27,16 @@
         <TextBox x:Name="txtMaxLength" HorizontalAlignment="Left" Height="23" Margin="80,354,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" Text="4"/>
         <Label Content="Min length" HorizontalAlignment="Left" Margin="10,331,0,0" VerticalAlignment="Top"/>
         <Label Content="Max length" HorizontalAlignment="Left" Margin="10,351,0,0" VerticalAlignment="Top"/>
-        <ListBox x:Name="lstBatches" HorizontalAlignment="Left" Height="151" Margin="164,290,0,0" VerticalAlignment="Top" Width="241"/>
+        <ListBox x:Name="lstBatches" HorizontalAlignment="Left" Height="131" Margin="164,290,0,0" VerticalAlignment="Top" Width="241"/>
         <Label Content="Batches" HorizontalAlignment="Left" Margin="164,264,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.307,0.513"/>
         <Label Content="Batch size" HorizontalAlignment="Left" Margin="10,377,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="txtBatchSize" HorizontalAlignment="Left" Height="23" Margin="80,377,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" Text="100000" TextChanged="txtBatchSize_TextChanged"/>
+        <TextBox x:Name="txtBatchSize" HorizontalAlignment="Left" Height="23" Margin="80,377,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" Text="1000000" TextChanged="txtBatchSize_TextChanged"/>
         <TextBox x:Name="txtFilename" HorizontalAlignment="Left" Height="23" Margin="10,243,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="395" Text="EncryptedFile.exe"/>
         <Label Content="File" HorizontalAlignment="Left" Margin="10,221,0,0" VerticalAlignment="Top"/>
-        <CheckBox x:Name="chkProgress" Content="Show Progress" HorizontalAlignment="Left" Margin="307,97,0,0" VerticalAlignment="Top" IsChecked="True"/>
+        <CheckBox x:Name="chkProgress" Content="Show Progress" HorizontalAlignment="Left" Margin="305,97,0,0" VerticalAlignment="Top" IsChecked="True"/>
+        <Label Content="Batches Remaining:" HorizontalAlignment="Left" Margin="164,421,0,0" VerticalAlignment="Top" Width="114"/>
+        <Label x:Name="lblBatchesRemaining" Content="" HorizontalAlignment="Left" Margin="283,421,0,0" VerticalAlignment="Top" Width="122"/>
+        <CheckBox x:Name="chkStopOnFound" Content="Stop On Found" HorizontalAlignment="Left" Margin="305,77,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 </Window>

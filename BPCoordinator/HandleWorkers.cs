@@ -181,7 +181,7 @@ namespace BPCoordinator
 
                 if(clients == null)
                 {
-                    Thread.Sleep(1000);
+                    Thread.Sleep(100);
                     continue;
                 }
                 foreach(NetworkClient c in clients.ToList())
@@ -196,10 +196,9 @@ namespace BPCoordinator
                             Console.WriteLine("Sending work to client " + c.Id);
                             SendClientWork(c.Id, filename, tmpBatch.Item1, tmpBatch.Item2, lowerChars, upperChars, numberChars, symbolChars);
                         }
-                        
                     }
                 }
-                Thread.Sleep(1000);
+                Thread.Sleep(100);
             }
         }
     }

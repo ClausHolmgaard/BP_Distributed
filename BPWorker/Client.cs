@@ -188,7 +188,7 @@ namespace BPWorker
                 ComDataToServer comData = new ComDataToServer();
                 comData.acceptingWork = acceptingWork;
                 comData.name = name;
-                comData.status = StatusCode.processing;
+                comData.status = status;
 
                 tcpQueue.Enqueue(comData);
             }
