@@ -22,6 +22,7 @@ namespace BPCoordinator
     public partial class MainWindow : Window
     {
         private Listener listener;
+        HandleWorkers hw;
 
         public MainWindow()
         {
@@ -58,13 +59,22 @@ namespace BPCoordinator
                 {
                     itm.Background = Brushes.Green;
                 }
-                else
+                if(!client.acceptingWork)
                 {
                     itm.Background = Brushes.Red;
                 }
 
                 lstClients.Items.Add(itm);
             }
+        }
+
+        private List<NetworkClient> ClientsForWorkerHandling()
+        {
+            if (listener != null)
+            {
+                return listener.GetClients();
+            }
+            return null;
         }
 
         private void AddIps()
@@ -99,7 +109,7 @@ namespace BPCoordinator
                 AddLogEntry(msg);
             }
 
-            ComData cd = new ComData();
+            ComData cd = new ComDataToClient();
             cd.message = message;
             cd.name = name;
 
@@ -146,7 +156,7 @@ namespace BPCoordinator
                 string clientName = listener.GetNameFromID(clientID);
                 string msg = "[Server -> " + clientName + "] " + txtSend.Text;
 
-                ComData cd = new ComData();
+                ComData cd = new ComDataToClient();
                 cd.message = msg;
 
                 if (msg != "" && msg != null)
@@ -161,7 +171,56 @@ namespace BPCoordinator
 
         private void btnProcess_Click(object sender, RoutedEventArgs e)
         {
+            bool lower = chkLowerCase.IsChecked == true;
+            bool upper = chkUpperCase.IsChecked == true;
+            bool numbers = chkNumbers.IsChecked == true;
+            bool symbols = chkSymbols.IsChecked == true;
+            bool minSuccess = Int32.TryParse(txtMinLength.Text, out int minLength);
+            bool maxSuccess = Int32.TryParse(txtMaxLength.Text, out int maxLength);
+            bool batchSuccess = Int32.TryParse(txtBatchSize.Text, out int batchSize);
 
+            if(!minSuccess || !maxSuccess)
+            {
+                MessageBox.Show("Both min and max length must be valid integers.");
+                return;
+            }
+            if(minLength > maxLength)
+            {
+                MessageBox.Show("Max length must be greater than or equal to min length");
+                return;
+            }
+            if(!batchSuccess)
+            {
+                MessageBox.Show("Batch size must be a valid integer");
+                return;
+            }
+
+            hw = new HandleWorkers(minLength, maxLength, batchSize, txtFilename.Text, lower, upper, numbers, symbols);
+            hw.BatchUpdate += BachUpdate;
+            hw.GetClients += ClientsForWorkerHandling;
+            hw.SendClientWork += listener.SendWorkOrder;
+        }
+
+        private void BachUpdate()
+        {
+            this.Dispatcher.Invoke(() =>
+            {
+                lstBatches.Items.Clear();
+            });
+
+
+            foreach (Tuple<char[], char[]> t in hw.GetBatchesNotProcessed())
+            {
+                string start = new string(t.Item1);
+                string end = new string(t.Item2);
+
+                this.Dispatcher.Invoke(() =>
+                {
+                    ListBoxItem itm = new ListBoxItem();
+                    itm.Content = start + " -> " + end;
+                    lstBatches.Items.Add(itm);
+                });
+            }
         }
     }
 }

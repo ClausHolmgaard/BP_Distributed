@@ -63,6 +63,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Client.cs" />
+    <Compile Include="Work.cs" />
     <Compile Include="WorkerMainWindow.xaml.cs">
       <DependentUpon>WorkerMainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

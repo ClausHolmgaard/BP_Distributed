@@ -17,24 +17,29 @@ namespace BPShared
         private delegate bool CheckPassMethod(char[] pass);
         private CheckPassMethod CheckPass;
 
-        private static char[] lowerCaseChars = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'æ', 'ø', 'å' };
-        private static char[] upperCaseChars = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Æ', 'Ø', 'Å' };
-        private static char[] numberChars = { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
-        private static char[] symbolChars = { '-', '_', ' ', ',', '.', '!' };
+        public static char[] lowerCaseChars = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'æ', 'ø', 'å' };
+        public static char[] upperCaseChars = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'Æ', 'Ø', 'Å' };
+        public static char[] numberChars = { '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' };
+        public static char[] symbolChars = { '-', '_', ' ', ',', '.', '!' };
         private List<char> validChars;
 
-        private string passWord;
+        private List<string> results;
+
+        private bool findAll;
+
         private string checkFile;
 
-        int min;
-        int max;
+        //int min;
+        //int max;
+        char[] end;
+        char[] start;
 
         //private List<Tuple<char[], char[]>> batches;
         private ConcurrentBag<Tuple<char[], char[]>> batches;
         AppDomain thisDomain = AppDomain.CurrentDomain;
         Assembly checkFileAssembly;
 
-        public BreakPass(int minLength, int maxLength, bool lower, bool upper, bool numbers, bool symbols, string file)
+        public BreakPass(bool lower, bool upper, bool numbers, bool symbols, string file, bool continueAfterOneFound=false)
         {
             checkFile = file;
 
@@ -48,34 +53,51 @@ namespace BPShared
             if (symbols)
                 validChars.AddRange(symbolChars);
 
-            min = minLength;
-            max = maxLength;
+            //min = minLength;
+            //max = maxLength;
+
+            findAll = continueAfterOneFound;
         }
 
-        public void CrackAnyExe(int workers, int batchSize)
+        public List<string> CrackAnyExe(int workers, int batchSize, Tuple<char[], char[]> batch)
         {
+            start = batch.Item1;
+            end = batch.Item2;
             CheckPass = CheckAgainstAnyExe;
             Run(workers, batchSize);
+            return results;
         }
 
-        public void CrackManagedExe(int workers, int batchSize)
+        public List<string> CrackManagedExe(int workers, int batchSize, Tuple<char[], char[]> batch)
         {
+            start = batch.Item1;
+            end = batch.Item2;
             CheckPass = CheckAgainstManagedExe;
             LoadAssembly();
             Run(workers, batchSize);
+            return results;
         }
 
-        public void CrackZip(int workers, int batchSize)
+        public List<string> CrackZip(int workers, int batchSize, Tuple<char[], char[]> batch)
         {
+            start = batch.Item1;
+            end = batch.Item2;
             CheckPass = CheckAgainstZip;
             Run(workers, batchSize);
+            return results;
         }
 
         public void Run(int workers, int batchSize)
         {
-            Split(batchSize);
+            results = new List<string>();
 
-            passWord = "";
+            List<Tuple<char[], char[]>>  b = Split(batchSize, start, end, validChars);
+            batches = new ConcurrentBag<Tuple<char[], char[]>>();
+
+            foreach(var item in b)
+            {
+                batches.Add(item);
+            }
 
             Console.WriteLine("Starting " + workers + " workers");
             Thread[] threads = new Thread[workers];
@@ -92,38 +114,38 @@ namespace BPShared
                 t.Join();
             }
 
-            if (passWord.Length != 0)
-            {
-                Console.WriteLine("Password found: " + passWord);
-            }
-            else
-            {
-                Console.WriteLine("Password not found... :(");
-            }
         }
 
-        private void Split(int batchSize)
+        public static List<Tuple<char[], char[]>> Split(int batchSize, char[] s, char[] e, List<char> valid)
         {
-            batches = new ConcurrentBag<Tuple<char[], char[]>>();
+            //batches = new ConcurrentBag<Tuple<char[], char[]>>();
+            List<Tuple<char[], char[]>> batches = new List<Tuple<char[], char[]>>();
 
-            for (int i = min; i <= max; i++)
+            for (int i = s.Length; i <= e.Length; i++)
             {
                 char[] startPass = new char[i];
                 char[] endPass;
 
-                char[] charBatchSize = IntToValidChar(batchSize, i);
+                char[] charBatchSize = IntToValidChar(batchSize, i, valid);
 
-                for (int n = 0; n < startPass.Length; n++)
+                if (i == s.Length)
                 {
-                    startPass[n] = validChars.First();
+                    startPass = s;
+                }
+                else
+                {
+                    for (int n = 0; n < startPass.Length; n++)
+                    {
+                        startPass[n] = valid.First();
+                    }
                 }
 
-                if (charBatchSize.Length > startPass.Length)
+                if (charBatchSize.Length > i)
                 {
                     endPass = new char[i];
-                    for (int n = 0; n < endPass.Length; n++)
+                    for (int n = 0; n < i; n++)
                     {
-                        endPass[n] = validChars.Last();
+                        endPass[n] = valid.Last();
                     }
                     Tuple<char[], char[]> batch = new Tuple<char[], char[]>((char[])startPass.Clone(), (char[])endPass.Clone());
                     Console.WriteLine("Added batch: " + new string(batch.Item1) + " to " + new string(batch.Item2));
@@ -135,24 +157,52 @@ namespace BPShared
 
                 while (!done)
                 {
-                    endPass = AddValidChars(startPass, charBatchSize);
+                    endPass = AddValidChars(startPass, charBatchSize, valid);
+
+                    if (ValidCharToInt(endPass, valid) > ValidCharToInt(e, valid))
+                    {
+                        endPass = e;
+                    }
+
                     Tuple<char[], char[]> batch = new Tuple<char[], char[]>((char[])startPass.Clone(), (char[])endPass.Clone());
                     Console.WriteLine("Added batch: " + new string(batch.Item1) + " to " + new string(batch.Item2));
                     batches.Add(batch);
                     startPass = (char[])endPass.Clone();
 
-                    if (endPass.All(c => c == validChars.Last()))
+                    if (endPass.Length == e.Length)
                     {
-                        done = true;
+                        if (e.SequenceEqual(endPass))
+                        {
+                            done = true;
+                        }
+                    }
+                    else
+                    {
+                        if (endPass.All(c => c == valid.Last()))
+                        {
+                            done = true;
+                        }
                     }
                 }
-
             }
 
             Console.WriteLine("Total batches: " + batches.Count);
+            return batches;
         }
 
-        private char[] AddValidChars(char[] vchar1, char[] vchar2)
+        private static UInt64 ValidCharToInt(char[] vchar, List<char> valid)
+        {
+            UInt64 sum = 0;
+
+            for (int i = 0; i < vchar.Length; i++)
+            {
+                sum += (UInt64)valid.IndexOf(vchar[i]) * (UInt64)Math.Pow(valid.Count, vchar.Length - i - 1);
+            }
+
+            return sum;
+        }
+
+        private static char[] AddValidChars(char[] vchar1, char[] vchar2, List<char> valid)
         {
             // If resulting array is long, just return max result. i.e. {'x', 'x'} + {'x', 'x'} = {'å', 'å'}  (for lower case only)
 
@@ -169,16 +219,16 @@ namespace BPShared
 
             for (int i = 0; i < vchar1.Length; i++)
             {
-                vchar1Sum += (UInt64)validChars.IndexOf(vchar1[i]) * (UInt64)Math.Pow(validChars.Count, vchar1.Length - i - 1);
-                vchar2Sum += (UInt64)validChars.IndexOf(vchar2[i]) * (UInt64)Math.Pow(validChars.Count, vchar1.Length - i - 1);
-                maxSum += ((UInt64)validChars.Count-1) * (UInt64)Math.Pow(validChars.Count, vchar1.Length - i - 1);
+                vchar1Sum += (UInt64)valid.IndexOf(vchar1[i]) * (UInt64)Math.Pow(valid.Count, vchar1.Length - i - 1);
+                vchar2Sum += (UInt64)valid.IndexOf(vchar2[i]) * (UInt64)Math.Pow(valid.Count, vchar1.Length - i - 1);
+                maxSum += ((UInt64)valid.Count-1) * (UInt64)Math.Pow(valid.Count, vchar1.Length - i - 1);
             }
 
             if (vchar1Sum + vchar2Sum > maxSum)
             {
                 for (int i = 0; i < vchar1.Length; i++)
                 {
-                    outChar[i] = validChars.Last();
+                    outChar[i] = valid.Last();
                 }
                 return outChar;
             }
@@ -186,25 +236,25 @@ namespace BPShared
             int remainder = 0;
             for (int i = vchar1.Length - 1; i >= 0; i--)
             {
-                int newInd = validChars.IndexOf(vchar1[i]) + validChars.IndexOf(vchar2[i]) + remainder;
-                if (newInd >= validChars.Count)
+                int newInd = valid.IndexOf(vchar1[i]) + valid.IndexOf(vchar2[i]) + remainder;
+                if (newInd >= valid.Count)
                 {
-                    remainder = newInd / validChars.Count;
-                    newInd = newInd - remainder * validChars.Count;
+                    remainder = newInd / valid.Count;
+                    newInd = newInd - remainder * valid.Count;
                 }
                 else
                 {
                     remainder = 0;
                 }
-                outChar[i] = validChars[newInd];
+                outChar[i] = valid[newInd];
             }
             return outChar;
         }
 
-        private char[] IntToValidChar(int anInt, int padAmount = -1)
+        private static char[] IntToValidChar(int anInt, int padAmount, List<char> valid)
         {
             int len = 1;
-            while (Math.Pow(validChars.Count, len) <= anInt)
+            while (Math.Pow(valid.Count, len) <= anInt)
             {
                 len++;
             }
@@ -222,14 +272,14 @@ namespace BPShared
 
             for (int i = 0; i < outChar.Length; i++)
             {
-                outChar[i] = validChars.First();
+                outChar[i] = valid.First();
             }
 
             for (int i = padAmount - 1; i >= 0; i--)
             {
-                int increasePerIncrement = (int)Math.Pow(validChars.Count, i);
+                int increasePerIncrement = (int)Math.Pow(valid.Count, i);
                 int increments = anInt / increasePerIncrement;
-                outChar[padAmount - (i + 1)] = validChars[increments];
+                outChar[padAmount - (i + 1)] = valid[increments];
                 anInt -= increments * increasePerIncrement;
             }
 
@@ -350,14 +400,15 @@ namespace BPShared
                     }
                 }
 
-                while (passWord.Length == 0)
+                while (results.Count == 0 || findAll)
                 {
                     //Console.WriteLine(testPass);
                     passChecked++;
                     bool success = CheckPass(testPass);
                     if (success)
                     {
-                        passWord = new string(testPass);
+                        Console.WriteLine("Found pass: " + new string(testPass));
+                        results.Add(new string(testPass));
                     }
                     if (!testPass.SequenceEqual(end) && !testPass.All(c => c == validChars.Last()))
                     {
@@ -404,7 +455,21 @@ namespace BPShared
             {
                 // read the bytes from the application exe file
                 FileStream fs;
-                fs = new FileStream(checkFile, FileMode.Open);
+                try
+                {
+                    fs = new FileStream(checkFile, FileMode.Open);
+                }
+                catch (DirectoryNotFoundException)
+                {
+                    Console.WriteLine("Could npt open directory");
+                    return;
+                }
+                catch(FileNotFoundException)
+                {
+                    Console.WriteLine("Could not open file");
+                    return;
+                }
+                
 
                 BinaryReader br = new BinaryReader(fs);
                 byte[] bin = br.ReadBytes(Convert.ToInt32(fs.Length));

@@ -26,7 +26,7 @@ namespace BPWorker
     public partial class MainWindow : Window
     {
         Client comm;
-        ComData comData;
+        ComDataToServer comData;
 
         public MainWindow()
         {
@@ -61,10 +61,11 @@ namespace BPWorker
             UpdateComm();
             if (txtSend.Text != "")
             {
-                comData = new ComData();
+                comData = new ComDataToServer();
                 comData.status = StatusCode.idle;
                 comData.name = txtName.Text;
                 comData.message = txtSend.Text;
+                comData.acceptingWork = chkAcceptWork.IsChecked == true;
 
                 comm.send(comData);
 
@@ -187,29 +188,42 @@ namespace BPWorker
 
         private void DataReceived(ComData comData)
         {
+            ComDataToClient c = (ComDataToClient)comData;
             if(comData.message != "" && comData.message != null)
             {
                 AddLogEntry("[" + comData.name + "] " + comData.message);
             }
+
+            if(c.filename != "" && c.filename != null && c.start != null && c.end != null)
+            {
+                GotWork(c.filename, c.start, c.end, c.lower, c.upper, c.numbers, c.symbols);
+            }
         }
 
-        private void btnTestWork_Click(object sender, RoutedEventArgs e)
+        private void BatchResult(List<string> result)
         {
-            string file = @"C:\Users\Claus\Documents\Mercantec\Programmering_III\EncryptedFile_6pass.exe";
-            //string file = @"C:\Users\Claus\Documents\Mercantec\Programmering_III\EncryptedFile.exe";
-            //AppDomain encryptedFile = AppDomain.CreateDomain("New Appdomain");
-
-            //char[] start = { 'a' };
-            //char[] end = { 'z', 'z', 'z', 'z' };
-            //List<Tuple<Char[], char[]>> lst = BreakPass.Split(100000, start, end, true, false, false, false);
-
-            BreakPass bp = new BreakPass(1, 6, true, false, false, false, file);
-
-            //bp.run(2, file);
-            bp.CrackManagedExe(4, 1000000);
-            //bp.CrackAnyExe(2);
-
-
+            foreach (string s in result)
+            {
+                Console.WriteLine("RESULT: " + s);
+            }
         }
+        
+        private void GotWork(string file, string start, string end, bool lower, bool upper, bool numbers, bool symbols)
+        {
+            comm.SendWorkAccepted();
+
+            int batchSize = 100000;
+            Tuple<char[], char[]> b = new Tuple<char[], char[]>(start.ToCharArray(), end.ToCharArray());
+
+            BreakPass bp = new BreakPass(lower, upper, numbers, symbols, file);
+            List<string> p = bp.CrackManagedExe(4, batchSize, b);
+            foreach (string s in p)
+            {
+                comm.SendPassword(s);
+            }
+
+            comm.SendWorkCompleted();
+        }
+
     }
 }

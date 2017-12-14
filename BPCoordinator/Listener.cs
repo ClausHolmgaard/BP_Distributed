@@ -73,7 +73,7 @@ namespace BPCoordinator
                         if (MessageReceived != null)
                         {
                             Console.WriteLine("Server: Received: " + content);
-                            ComData comData = new ComData();
+                            ComDataToServer comData = new ComDataToServer();
                             comData.FromXML(content);
 
                             if(comData != null)
@@ -122,7 +122,7 @@ namespace BPCoordinator
         }
     }
 
-    class Listener
+    public class Listener
     {
         public delegate void ClientsChangedDelegate();
         public delegate void ComDataReceviedDelegate(ComData cmData);
@@ -285,6 +285,22 @@ namespace BPCoordinator
                     }
                 }
             }
+        }
+
+        public void SendWorkOrder(int clientId, string file, char[] start, char[] end, bool lower, bool upper, bool numbers, bool symbols)
+        {
+            ComDataToClient comData = new ComDataToClient();
+            comData.message = "";
+            Console.WriteLine("WORKORDER FOR FILE: " + file);
+            comData.filename = file;
+            comData.start = new string(start);
+            comData.end = new string(end);
+            comData.lower = lower;
+            comData.upper = upper;
+            comData.numbers = numbers;
+            comData.symbols = symbols;
+
+            Send(comData, clientId);
         }
     }
 }

@@ -5,11 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:BPCoordinator"
         mc:Ignorable="d"
-        Title="BP Coordinator" Height="489.216" Width="895.588" Loaded="Window_Loaded">
+        Title="BP Coordinator" Height="533.883" Width="895.588" Loaded="Window_Loaded">
     <Grid>
-        <Button x:Name="btnSend" Content="Send To All" HorizontalAlignment="Left" Margin="330,428,0,0" VerticalAlignment="Top" Width="75" Click="btnSend_Click" RenderTransformOrigin="0.611,1.611"/>
-        <TextBox x:Name="txtSend" HorizontalAlignment="Left" Height="20" Margin="10,403,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="395" KeyDown="txtSend_KeyDown"/>
-        <ListBox x:Name="lstLog" HorizontalAlignment="Left" Height="413" Margin="410,35,0,0" VerticalAlignment="Top" Width="468"/>
+        <Button x:Name="btnSend" Content="Send To All" HorizontalAlignment="Left" Margin="330,471,0,0" VerticalAlignment="Top" Width="75" Click="btnSend_Click" RenderTransformOrigin="0.611,1.611"/>
+        <TextBox x:Name="txtSend" HorizontalAlignment="Left" Height="20" Margin="10,446,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="395" KeyDown="txtSend_KeyDown"/>
+        <ListBox x:Name="lstLog" HorizontalAlignment="Left" Height="458" Margin="410,35,0,0" VerticalAlignment="Top" Width="468"/>
         <Label Content="Log" HorizontalAlignment="Left" Margin="410,4,0,0" VerticalAlignment="Top" Width="143"/>
         <ComboBox x:Name="cmbIp" HorizontalAlignment="Left" Margin="10,35,0,0" VerticalAlignment="Top" Width="165"/>
         <Button x:Name="btnListen" Content="Listen" HorizontalAlignment="Left" Margin="10,62,0,0" VerticalAlignment="Top" Width="75" Click="btnListen_Click"/>
@@ -18,12 +18,22 @@
         <TextBox x:Name="txtPort" HorizontalAlignment="Left" Height="23" Margin="180,34,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="70" Text="11002"/>
         <ListBox x:Name="lstClients" HorizontalAlignment="Left" Height="99" Margin="10,117,0,0" VerticalAlignment="Top" Width="395" SelectionMode="Multiple"/>
         <Label Content="Clients" HorizontalAlignment="Left" Margin="10,86,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btnSendToSelected" Content="Send To Selected" HorizontalAlignment="Left" Margin="222,428,0,0" VerticalAlignment="Top" Width="103" Click="btnSendToSelected_Click"/>
-        <CheckBox x:Name="chkLowerCase" Content="Lower Case" HorizontalAlignment="Left" Margin="10,286,0,0" VerticalAlignment="Top"/>
-        <CheckBox x:Name="chkUpperCase" Content="Upper Case" HorizontalAlignment="Left" Margin="10,301,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.878,-0.889"/>
-        <CheckBox x:Name="chkNumbers" Content="Numbers" HorizontalAlignment="Left" Margin="10,316,0,0" VerticalAlignment="Top"/>
-        <CheckBox x:Name="chkSymbols" Content="Symbols" HorizontalAlignment="Left" Margin="10,331,0,0" VerticalAlignment="Top"/>
-        <Button x:Name="btnProcess" Content="Process" HorizontalAlignment="Left" Margin="10,351,0,0" VerticalAlignment="Top" Width="75" Click="btnProcess_Click"/>
+        <Button x:Name="btnSendToSelected" Content="Send To Selected" HorizontalAlignment="Left" Margin="222,471,0,0" VerticalAlignment="Top" Width="103" Click="btnSendToSelected_Click"/>
+        <CheckBox x:Name="chkLowerCase" Content="Lower Case" HorizontalAlignment="Left" Margin="10,271,0,0" VerticalAlignment="Top" IsChecked="True"/>
+        <CheckBox x:Name="chkUpperCase" Content="Upper Case" HorizontalAlignment="Left" Margin="10,286,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.878,-0.889"/>
+        <CheckBox x:Name="chkNumbers" Content="Numbers" HorizontalAlignment="Left" Margin="10,301,0,0" VerticalAlignment="Top"/>
+        <CheckBox x:Name="chkSymbols" Content="Symbols" HorizontalAlignment="Left" Margin="10,316,0,0" VerticalAlignment="Top"/>
+        <Button x:Name="btnStartWork" Content="Start Work" HorizontalAlignment="Left" Margin="10,409,0,0" VerticalAlignment="Top" Width="75" Click="btnProcess_Click"/>
+        <TextBox x:Name="txtMinLength" HorizontalAlignment="Left" Height="23" Margin="80,331,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" Text="1"/>
+        <TextBox x:Name="txtMaxLength" HorizontalAlignment="Left" Height="23" Margin="80,354,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" Text="4"/>
+        <Label Content="Min length" HorizontalAlignment="Left" Margin="10,331,0,0" VerticalAlignment="Top"/>
+        <Label Content="Max length" HorizontalAlignment="Left" Margin="10,351,0,0" VerticalAlignment="Top"/>
+        <ListBox x:Name="lstBatches" HorizontalAlignment="Left" Height="151" Margin="164,290,0,0" VerticalAlignment="Top" Width="241"/>
+        <Label Content="Batches" HorizontalAlignment="Left" Margin="164,264,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.307,0.513"/>
+        <Label Content="Batch size" HorizontalAlignment="Left" Margin="10,377,0,0" VerticalAlignment="Top"/>
+        <TextBox x:Name="txtBatchSize" HorizontalAlignment="Left" Height="23" Margin="80,377,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="60" Text="10000"/>
+        <TextBox x:Name="txtFilename" HorizontalAlignment="Left" Height="23" Margin="10,243,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="395"/>
+        <Label Content="File" HorizontalAlignment="Left" Margin="10,221,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 </Window>

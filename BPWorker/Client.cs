@@ -101,7 +101,7 @@ namespace BPWorker
                 
                 Console.WriteLine("Worker: Received: " + read);
 
-                ComData comData = new ComData();
+                ComDataToClient comData = new ComDataToClient();
                 comData.FromXML(read);
 
                 ComDataReceivedEvent(comData);
@@ -130,7 +130,7 @@ namespace BPWorker
         {
             while (isConnected)
             {
-                ComData comData = new ComData();
+                ComDataToServer comData = new ComDataToServer();
                 comData.acceptingWork = acceptingWork;
                 comData.name = name;
                 comData.status = StatusCode.idle;
@@ -142,6 +142,39 @@ namespace BPWorker
             }
         }
 
+        public void SendWorkAccepted()
+        {
+            if(isConnected)
+            {
+                acceptingWork = false;
+                ComDataToServer comData = new ComDataToServer();
+                comData.acceptingWork = false;
+                comData.name = name;
+                comData.status = StatusCode.processing;
+            }
+        }
+
+        public void SendWorkCompleted()
+        {
+            if (isConnected)
+            {
+                acceptingWork = true;
+                ComDataToServer comData = new ComDataToServer();
+                comData.acceptingWork = true;
+                comData.name = name;
+                comData.status = StatusCode.idle;
+            }
+        }
+
+        public void SendPassword(string pass)
+        {
+            if (isConnected)
+            {
+                ComDataToServer comData = new ComDataToServer();
+                comData.name = name;
+                comData.password = pass;
+            }
+        }
     }
 
 }

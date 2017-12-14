@@ -20,7 +20,6 @@
         <Label Content="Name" HorizontalAlignment="Left" Margin="10,422,0,0" VerticalAlignment="Top"/>
         <Button x:Name="btnDisconnect" Content="Disconnect" HorizontalAlignment="Left" Margin="153,64,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click"/>
         <CheckBox x:Name="chkAcceptWork" Content="Accept Work" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top" Checked="chkAcceptWork_Checked" Unchecked="chkAcceptWork_Unchecked"/>
-        <Button x:Name="btnTestWork" Content="Work" HorizontalAlignment="Left" Margin="136,226,0,0" VerticalAlignment="Top" Width="75" Click="btnTestWork_Click"/>
 
     </Grid>
 </Window>
