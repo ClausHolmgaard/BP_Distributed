@@ -16,6 +16,12 @@ namespace BPShared
         void FromXML(string xml);
     }
 
+    interface ISecurable
+    {
+        string encrypt(string clear, int[] key, int[] salt);
+        string decrypt(string cipher, int[] key, int[] salt);
+    }
+
     public enum StatusCode
     {
         idle = 0,
@@ -36,7 +42,7 @@ namespace BPShared
     [XmlInclude(typeof(ComDataToServer))]
     [XmlInclude(typeof(WorkStatus))]
     [Serializable]
-    public abstract class ComData : ISerializable, IDeserializable
+    public abstract class ComData : ISerializable, IDeserializable, ISecurable
     {
         public string message { get; set; }
         public string name { get; set; }
@@ -57,7 +63,7 @@ namespace BPShared
             //return sWriter.ToString().Replace(Environment.NewLine, "");
         }
 
-        protected string encrypt(string clear, int[] key, int[] salt)
+        public string encrypt(string clear, int[] key, int[] salt)
         {
             int index = 0;
             string encryptedString = "";
@@ -85,7 +91,7 @@ namespace BPShared
             return encryptedString;
         }
 
-        protected string decrypt(string cipher, int[] key, int[] salt)
+        public string decrypt(string cipher, int[] key, int[] salt)
         {
             string clearString = "";
             char[] valids = Helpers.getValidEncryptChars();
